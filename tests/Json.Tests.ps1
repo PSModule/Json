@@ -50,7 +50,7 @@ Describe 'Module' {
                     [PSCustomObject]@{ Id = 1; Value = 'One' },
                     [PSCustomObject]@{ Id = 2; Value = 'Two' }
                 )
-                Meta  = @{ Active = $true; Count = 2 }
+                Meta  = [ordered]@{ Active = $true; Count = 2 }
             }
 
             LogGroup 'Pretty JSON' {
