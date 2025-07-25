@@ -60,7 +60,7 @@ function Format-Json {
             }
 
             $indentUnit = switch ($IndentationType) {
-                'Tabs'   { "`t" }
+                'Tabs' { "`t" }
                 'Spaces' { ' ' * $IndentationSize }
             }
 
