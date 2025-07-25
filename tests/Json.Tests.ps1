@@ -218,7 +218,7 @@ Describe 'Module' {
                     IsActive  = $true
                     LastLogin = $null
                     Roles     = @('admin', 'user')
-                    Settings  = @{
+                    Settings  = [ordered]@{
                         Theme         = 'dark'
                         Notifications = $false
                         MaxItems      = 100
@@ -235,6 +235,264 @@ Describe 'Module' {
             $result | Should -Match '"IsActive": true'
             $result | Should -Match '"LastLogin": null'
             $result | Should -Match '"Notifications": false'
+        }
+    }
+
+    Context 'Complex JSON Structures' {
+        It 'Should format JSON Schema-like structures' {
+            # JSON Schema is a common complex structure used for validation
+            $jsonSchema = [PSCustomObject]@{
+                '$schema'  = 'https://json-schema.org/draft/2020-12/schema'
+                '$id'      = 'https://example.com/person.schema.json'
+                title      = 'Person'
+                type       = 'object'
+                properties = [ordered]@{
+                    firstName = [ordered]@{
+                        type        = 'string'
+                        description = 'The person''s first name.'
+                    }
+                    lastName  = [ordered]@{
+                        type        = 'string'
+                        description = 'The person''s last name.'
+                    }
+                    age       = [ordered]@{
+                        type        = 'integer'
+                        description = 'Age in years which must be equal to or greater than zero.'
+                        minimum     = 0
+                    }
+                }
+                required   = @('firstName', 'lastName')
+            }
+            $result = Format-Json -InputObject $jsonSchema -IndentationType Spaces -IndentationSize 2
+            LogGroup 'JSON Schema formatting' {
+                Write-Host "$result"
+            }
+            $result | Should -Match '"\$schema":'
+            $result | Should -Match '"properties":'
+            $result | Should -Match '"required": \['
+        }
+
+        It 'Should format deeply nested objects (10+ levels)' {
+            # Test deep nesting which can occur in configuration files
+            $deepNested = [PSCustomObject]@{
+                level1 = @{
+                    level2 = @{
+                        level3 = @{
+                            level4 = @{
+                                level5 = @{
+                                    level6 = @{
+                                        level7 = @{
+                                            level8 = @{
+                                                level9 = @{
+                                                    level10 = [ordered]@{
+                                                        deepValue = 'Found me!'
+                                                        deepArray = @(1, 2, 3)
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            $result = Format-Json -InputObject $deepNested -IndentationType Spaces -IndentationSize 2
+            LogGroup 'deep nesting formatting' {
+                Write-Host "$result"
+            }
+            $result | Should -Match '"deepValue": "Found me!"'
+            # Check that indentation is working at deep levels
+            $result | Should -Match '^ {20}"deepValue":'
+        }
+
+        It 'Should format API response-like structures' {
+            # Common REST API response structure
+            $apiResponse = [PSCustomObject]@{
+                status = 'success'
+                data   = @{
+                    users = @(
+                        [ordered]@{
+                            id          = 1
+                            name        = 'Alice'
+                            email       = 'alice@example.com'
+                            profile     = [ordered]@{
+                                avatar = 'https://example.com/avatar1.jpg'
+                                bio    = 'Software developer'
+                                social = [ordered]@{
+                                    twitter = '@alice'
+                                    github  = 'alice-dev'
+                                }
+                            }
+                            permissions = @('read', 'write', 'admin')
+                        },
+                        [ordered]@{
+                            id          = 2
+                            name        = 'Bob'
+                            email       = 'bob@example.com'
+                            profile     = [ordered]@{
+                                avatar = $null
+                                bio    = ''
+                                social = @{}
+                            }
+                            permissions = @('read')
+                        }
+                    )
+                }
+                meta   = [ordered]@{
+                    total    = 2
+                    page     = 1
+                    per_page = 10
+                    has_more = $false
+                }
+                links  = [ordered]@{
+                    self = 'https://api.example.com/users?page=1'
+                    next = $null
+                    prev = $null
+                }
+            }
+            $result = Format-Json -InputObject $apiResponse -IndentationType Spaces -IndentationSize 2
+            LogGroup 'API response formatting' {
+                Write-Host "$result"
+            }
+            $result | Should -Match '"status": "success"'
+            $result | Should -Match '"permissions": \['
+            $result | Should -Match '"has_more": false'
+            $result | Should -Match '"next": null'
+        }
+
+        It 'Should format configuration file-like structures' {
+            # Complex configuration with various data types
+            $configuration = [PSCustomObject]@{
+                version     = '2.1'
+                environment = 'production'
+                database    = [ordered]@{
+                    connections = [ordered]@{
+                        primary  = [ordered]@{
+                            host     = 'db1.example.com'
+                            port     = 5432
+                            database = 'myapp'
+                            ssl      = $true
+                            pool     = [ordered]@{
+                                min          = 5
+                                max          = 20
+                                idle_timeout = 30000
+                            }
+                        }
+                        readonly = [ordered]@{
+                            host     = 'db2.example.com'
+                            port     = 5432
+                            database = 'myapp'
+                            ssl      = $true
+                        }
+                    }
+                }
+                cache       = @{
+                    redis = [ordered]@{
+                        cluster = @(
+                            [ordered]@{ host = 'redis1.example.com'; port = 6379 },
+                            [ordered]@{ host = 'redis2.example.com'; port = 6379 },
+                            [ordered]@{ host = 'redis3.example.com'; port = 6379 }
+                        )
+                        ttl     = 3600
+                    }
+                }
+                features    = [ordered]@{
+                    feature_flags = [ordered]@{
+                        new_ui    = $true
+                        beta_api  = $false
+                        analytics = $true
+                    }
+                    rate_limiting = [ordered]@{
+                        enabled             = $true
+                        requests_per_minute = 1000
+                        burst_limit         = 1500
+                    }
+                }
+                monitoring  = [ordered]@{
+                    metrics = [ordered]@{
+                        enabled  = $true
+                        endpoint = 'https://metrics.example.com'
+                        interval = 60
+                    }
+                    logging = [ordered]@{
+                        level        = 'info'
+                        destinations = @('console', 'file', 'syslog')
+                        structured   = $true
+                    }
+                }
+            }
+            $result = Format-Json -InputObject $configuration -IndentationType Spaces -IndentationSize 2
+            LogGroup 'configuration formatting' {
+                Write-Host "$result"
+            }
+            $result | Should -Match '"version": "2\.1"'
+            $result | Should -Match '"cluster": \['
+            $result | Should -Match '"requests_per_minute": 1000'
+            $result | Should -Match '"destinations": \['
+        }
+
+        It 'Should format arrays of objects with varying properties' {
+            # Real-world scenario where objects in an array have different properties
+            $mixedObjectArray = [PSCustomObject]@{
+                events = @(
+                    [ordered]@{
+                        type       = 'user_login'
+                        timestamp  = '2023-01-01T10:00:00Z'
+                        user_id    = 123
+                        ip_address = '192.168.1.1'
+                    },
+                    [ordered]@{
+                        type       = 'purchase'
+                        timestamp  = '2023-01-01T11:30:00Z'
+                        user_id    = 123
+                        product_id = 'ABC123'
+                        amount     = 29.99
+                        currency   = 'USD'
+                    },
+                    [ordered]@{
+                        type        = 'error'
+                        timestamp   = '2023-01-01T12:00:00Z'
+                        error_code  = 500
+                        message     = 'Internal server error'
+                        stack_trace = $null
+                        context     = [ordered]@{
+                            request_id = 'req-456'
+                            user_agent = 'Mozilla/5.0...'
+                        }
+                    }
+                )
+            }
+            $result = Format-Json -InputObject $mixedObjectArray -IndentationType Spaces -IndentationSize 2
+            LogGroup 'mixed object array formatting' {
+                Write-Host "$result"
+            }
+            $result | Should -Match '"type": "user_login"'
+            $result | Should -Match '"amount": 29\.99'
+            $result | Should -Match '"error_code": 500'
+            $result | Should -Match '"stack_trace": null'
+        }
+
+        It 'Should handle special characters and Unicode in strings' {
+            # Test various special characters that need escaping or careful handling
+            $specialCharacters = [PSCustomObject]@{
+                quotes          = 'He said "Hello World"'
+                backslashes     = 'C:\Windows\System32'
+                newlines        = "Line 1`nLine 2`nLine 3"
+                tabs            = "Column1`tColumn2`tColumn3"
+                unicode         = 'Café ñ 中文 🚀 ❤️'
+                json_escape     = '{"nested": "json"}'
+                empty_string    = ''
+                whitespace_only = '   '
+            }
+            $result = Format-Json -InputObject $specialCharacters -Compact
+            LogGroup 'special characters formatting' {
+                Write-Host "$result"
+            }
+            $result | Should -Match '"quotes":"He said \\"Hello World\\""'
+            $result | Should -Match '"unicode":"Café ñ 中文 🚀 ❤️"'
+            $result | Should -Match '"empty_string":""'
         }
     }
 }
