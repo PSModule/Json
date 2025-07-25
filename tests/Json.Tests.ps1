@@ -42,19 +42,29 @@ Describe 'Module' {
                 )
                 Meta  = @{ Active = $true; Count = 2 }
             }
+
+            LogGroup 'Pretty JSON' {
+                $prettyJson | Out-String
+            }
+            LogGroup 'Compact JSON' {
+                $compactJson | Out-String
+            }
+            LogGroup 'Object' {
+                $object | Out-String
+            }
         }
 
         It 'Should compact pretty JSON' {
             $result = Format-Json -JsonString $prettyJson -Compact
             LogGroup 'compact from string' {
-                Write-Host "$result"
+                $result | Out-String
             }
             $result | Should -BeExactly $compactJson
         }
         It 'Should compact object' {
             $result = Format-Json -InputObject $object -Compact
             LogGroup 'compact from object' {
-                Write-Host "$result"
+                $result | Out-String
             }
             $result | Should -BeExactly $compactJson
         }
@@ -62,14 +72,14 @@ Describe 'Module' {
         It 'Should reindent JSON string with tabs' {
             $result = Format-Json -JsonString $prettyJson -IndentationType Tabs -IndentationSize 1
             LogGroup 'tabs from string' {
-                Write-Host "$result"
+                $result | Out-String
             }
             ($result -split "`n") | Where-Object { $_ -match '^\t{3}"Id"' } | Should -Not -BeNullOrEmpty
         }
         It 'Should format object with tabs' {
             $result = Format-Json -InputObject $object -IndentationType Tabs -IndentationSize 1
             LogGroup 'tabs from object' {
-                Write-Host "$result"
+                $result | Out-String
             }
             ($result -split "`n") | Where-Object { $_ -match '^\t{3}"Id"' } | Should -Not -BeNullOrEmpty
         }
@@ -77,14 +87,14 @@ Describe 'Module' {
         It 'Should use 2-space indentation' {
             $result = Format-Json -JsonString $compactJson -IndentationType Spaces -IndentationSize 2
             LogGroup 'spaces 2 from string' {
-                Write-Host "$result"
+                $result | Out-String
             }
             ($result -split "`n") | Where-Object { $_ -match '^ {6}"Id"' } | Should -Not -BeNullOrEmpty
         }
         It 'Should use 4-space indentation from object' {
             $result = Format-Json -InputObject $object -IndentationType Spaces -IndentationSize 4
             LogGroup 'spaces 4 from object' {
-                Write-Host "$result"
+                $result | Out-String
             }
             ($result -split "`n") | Where-Object { $_ -match '^ {12}"Id"' } | Should -Not -BeNullOrEmpty
         }
