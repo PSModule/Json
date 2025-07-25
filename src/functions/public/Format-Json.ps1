@@ -1,21 +1,24 @@
 function Format-Json {
     <#
-    .SYNOPSIS
+        .SYNOPSIS
         Formats a JSON string or PowerShell object.
 
-    .DESCRIPTION
+        .DESCRIPTION
         Converts raw JSON strings or PowerShell objects into formatted JSON. Supports
         pretty-printing with configurable indentation or compact output.
 
-    .EXAMPLE
+        .EXAMPLE
         Format-Json -JsonString '{"a":1,"b":{"c":2}}' -IndentationType Spaces -IndentationSize 2
 
-    .EXAMPLE
+        .EXAMPLE
         $obj = @{ user = 'Marius'; roles = @('admin','dev') }
         Format-Json -InputObject $obj -IndentationType Tabs -IndentationSize 1
 
-    .EXAMPLE
+        .EXAMPLE
         Format-Json -JsonString '{"a":1,"b":{"c":2}}' -Compact
+
+        .LINK
+        https://psmodule.io/Json/Functions/Format-Json/
     #>
 
     [CmdletBinding(DefaultParameterSetName = 'FromString')]
