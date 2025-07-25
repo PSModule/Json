@@ -7,13 +7,6 @@ function Import-Json {
         Reads JSON content from one or more files and converts it to PowerShell objects.
         Supports pipeline input for processing multiple files.
 
-        .PARAMETER Path
-        The path to the JSON file to import. Supports wildcards and multiple paths.
-        Can be provided via pipeline.
-
-        .PARAMETER Depth
-        The maximum depth to expand nested objects. Default is 100.
-
         .EXAMPLE
         Import-Json -Path 'config.json'
         
@@ -40,12 +33,12 @@ function Import-Json {
 
     [CmdletBinding()]
     param (
-        # Path to the JSON file(s) to import.
+        # The path to the JSON file to import. Supports wildcards and multiple paths. Can be provided via pipeline.
         [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [Alias('FullName')]
         [string[]]$Path,
 
-        # Maximum depth for nested object expansion.
+        # The maximum depth to expand nested objects. Default is 100.
         [Parameter()]
         [int]$Depth = 100
     )
