@@ -146,7 +146,7 @@ $formatted
 
 #endregion
 
-"#endregion
+#endregion
 
 #region Import-Json Examples
 
@@ -155,10 +155,10 @@ $formatted
 # First, create a sample JSON file
 $configData = @{
     database = @{
-        host     = 'localhost'
-        port     = 5432
-        name     = 'myapp'
-        ssl      = $true
+        host = 'localhost'
+        port = 5432
+        name = 'myapp'
+        ssl  = $true
     }
     logging  = @{
         level = 'info'
@@ -175,8 +175,8 @@ $configData | ConvertTo-Json -Depth 3 | Set-Content -Path $configFile
 # Import the JSON file
 $importedConfig = Import-Json -Path $configFile
 $importedConfig
-Write-Host "Database host: $($importedConfig.database.host)"
-Write-Host "Source file: $($importedConfig._SourceFile)"
+Write-Host "Database host: $($importedConfig.database.host)'
+Write-Host 'Source file: $($importedConfig._SourceFile)"
 
 # Example 10: Import multiple JSON files using wildcards
 'Example 10: Import multiple JSON files using wildcards'
@@ -215,7 +215,7 @@ try {
 'Example 13: Combine Import-Json with Format-Json'
 $rawConfig = Import-Json -Path $configFile
 $formattedConfig = Format-Json -InputObject $rawConfig -IndentationType Spaces -IndentationSize 2
-Write-Host "Formatted imported configuration:"
+Write-Host 'Formatted imported configuration:'
 $formattedConfig
 
 # Cleanup temporary files

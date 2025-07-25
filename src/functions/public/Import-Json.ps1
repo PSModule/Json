@@ -9,22 +9,22 @@ function Import-Json {
 
         .EXAMPLE
         Import-Json -Path 'config.json'
-        
+
         Imports JSON data from config.json file.
 
         .EXAMPLE
         Import-Json -Path 'data/*.json'
-        
+
         Imports JSON data from all .json files in the data directory.
 
         .EXAMPLE
         'settings.json', 'users.json' | Import-Json
-        
+
         Imports JSON data from multiple files via pipeline.
 
         .EXAMPLE
         Import-Json -Path 'complex.json' -Depth 50
-        
+
         Imports JSON data with a custom maximum depth of 50 levels.
 
         .LINK
@@ -48,10 +48,10 @@ function Import-Json {
             try {
                 # Resolve wildcards and relative paths
                 $resolvedPaths = Resolve-Path -Path $filePath -ErrorAction Stop
-                
+
                 foreach ($resolvedPath in $resolvedPaths) {
                     Write-Verbose "Processing file: $($resolvedPath.Path)"
-                    
+
                     # Test if the file exists and is a file (not directory)
                     if (-not (Test-Path -Path $resolvedPath.Path -PathType Leaf)) {
                         Write-Error "File not found or is not a file: $($resolvedPath.Path)"
@@ -60,7 +60,7 @@ function Import-Json {
 
                     # Read file content
                     $jsonContent = Get-Content -Path $resolvedPath.Path -Raw -ErrorAction Stop
-                    
+
                     # Check if file is empty
                     if ([string]::IsNullOrWhiteSpace($jsonContent)) {
                         Write-Warning "File is empty or contains only whitespace: $($resolvedPath.Path)"
@@ -73,12 +73,12 @@ function Import-Json {
                     } else {
                         $jsonObject = $jsonContent | ConvertFrom-Json -ErrorAction Stop
                     }
-                    
+
                     # Add file path information as a note property for reference
                     if ($jsonObject -is [PSCustomObject]) {
                         Add-Member -InputObject $jsonObject -MemberType NoteProperty -Name '_SourceFile' -Value $resolvedPath.Path -Force
                     }
-                    
+
                     # Output the object
                     $jsonObject
                 }

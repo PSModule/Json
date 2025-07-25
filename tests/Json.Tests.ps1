@@ -582,10 +582,10 @@ Describe 'Module' {
             # Test with only valid JSON files to avoid interference from invalid ones
             $validJsonPath1 = Join-Path $testDataPath 'valid1.json'
             $validJsonPath2 = Join-Path $testDataPath 'valid2.json'
-            
+
             '{"type":"user","name":"Test User"}' | Out-File -FilePath $validJsonPath1 -Encoding UTF8
             '{"type":"product","name":"Widget"}' | Out-File -FilePath $validJsonPath2 -Encoding UTF8
-            
+
             $results = Import-Json -Path (Join-Path $testDataPath 'valid*.json')
             LogGroup 'wildcard import results' {
                 Write-Host "Found $($results.Count) results"
