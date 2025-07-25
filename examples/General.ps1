@@ -1,19 +1,149 @@
-﻿<#
-  .SYNOPSIS
-    This is a general example of how to use the module.
-#>
+﻿# JSON Module Examples
+# This file contains practical examples of using the Format-Json function
 
-# Import the module
-Import-Module -Name 'PSModule'
+# Import the module (if not already loaded)
+# Import-Module Json
 
-# Define the path to the font file
-$FontFilePath = 'C:\Fonts\CodeNewRoman\CodeNewRomanNerdFontPropo-Regular.tff'
+#region Basic Examples
 
-# Install the font
-Install-Font -Path $FontFilePath -Verbose
+# Example 1: Format a simple JSON string with spaces indentation
+'Example 1: Format JSON with spaces (default)'
+$jsonString = '{"a":1,"b":{"c":2}}'
+$formatted = Format-Json -JsonString $jsonString -IndentationType Spaces -IndentationSize 2
+$formatted
 
-# List installed fonts
-Get-Font -Name 'CodeNewRomanNerdFontPropo-Regular'
+# Example 2: Format a PowerShell object as JSON with tabs
+'Example 2: Format PowerShell object with tabs'
+$obj = @{
+    user     = 'Marius'
+    roles    = @('admin', 'dev')
+    settings = @{
+        theme         = 'dark'
+        notifications = $true
+    }
+}
+$formatted = Format-Json -InputObject $obj -IndentationType Tabs -IndentationSize 1
+$formatted
 
-# Uninstall the font
-Get-Font -Name 'CodeNewRomanNerdFontPropo-Regular' | Uninstall-Font -Verbose
+# Example 3: Compact (minified) JSON output
+'Example 3: Compact JSON output'
+$jsonString = '{"a":1,"b":{"c":2}}'
+$compact = Format-Json -JsonString $jsonString -Compact
+$compact
+
+#endregion
+
+#region Advanced Examples
+
+# Example 4: Complex nested object with different indentation sizes
+'Example 4: Complex nested structure with 4-space indentation'
+$complexObj = @{
+    metadata = @{
+        version = '1.0.0'
+        author  = 'PowerShell Community'
+        created = Get-Date -Format 'yyyy-MM-dd'
+    }
+    data     = @{
+        users         = @(
+            @{ id = 1; name = 'Alice'; active = $true },
+            @{ id = 2; name = 'Bob'; active = $false }
+        )
+        configuration = @{
+            api      = @{
+                baseUrl = 'https://api.example.com'
+                timeout = 30
+                retries = 3
+            }
+            features = @{
+                logging   = $true
+                caching   = $false
+                analytics = $true
+            }
+        }
+    }
+}
+$formatted = Format-Json -InputObject $complexObj -IndentationType Spaces -IndentationSize 4
+$formatted
+
+# Example 5: Pipeline usage - format multiple JSON strings
+'Example 5: Pipeline usage with multiple JSON strings'
+$jsonStrings = @(
+    '{"name":"John","age":30}',
+    '{"product":"Widget","price":9.99}',
+    '{"status":"active","count":42}'
+)
+
+$jsonStrings | ForEach-Object {
+    "Original: $_"
+    $formatted = $_ | Format-Json -IndentationType Spaces -IndentationSize 2
+    $formatted
+    ''
+}
+('=' * 50 + "`n")
+
+# Example 6: Error handling demonstration
+'Example 6: Error handling with invalid JSON'
+try {
+    $invalidJson = '{"invalid": json}'
+    Format-Json -JsonString $invalidJson
+} catch {
+    Write-Warning "Caught expected error: $($_.Exception.Message)"
+}
+
+#endregion
+
+#region Practical Use Cases
+
+# Example 7: Format configuration file
+'Example 7: Format a configuration file structure'
+$config = @{
+    server   = @{
+        host = 'localhost'
+        port = 8080
+        ssl  = @{
+            enabled     = $true
+            certificate = '/path/to/cert.pem'
+            key         = '/path/to/key.pem'
+        }
+    }
+    database = @{
+        type = 'postgresql'
+        host = 'db.example.com'
+        port = 5432
+        name = 'myapp'
+        pool = @{
+            min = 5
+            max = 20
+        }
+    }
+    logging  = @{
+        level    = 'info'
+        file     = '/var/log/app.log'
+        rotation = @{
+            enabled  = $true
+            maxSize  = '100MB'
+            maxFiles = 7
+        }
+    }
+}
+$formatted = Format-Json -InputObject $config -IndentationType Spaces -IndentationSize 2
+$formatted
+
+# Example 8: Compare compact vs formatted output
+'Example 8: Compare compact vs formatted output'
+$data = @{
+    items    = @(1, 2, 3, 4, 5)
+    metadata = @{ total = 5; page = 1 }
+}
+
+'Compact version:'
+$compact = Format-Json -InputObject $data -Compact
+$compact
+
+"`nFormatted version:"
+$formatted = Format-Json -InputObject $data -IndentationType Spaces -IndentationSize 2
+$formatted
+
+#endregion
+
+"`nAll examples completed!"
