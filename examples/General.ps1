@@ -175,8 +175,8 @@ $configData | ConvertTo-Json -Depth 3 | Set-Content -Path $configFile
 # Import the JSON file
 $importedConfig = Import-Json -Path $configFile
 $importedConfig
-Write-Host "Database host: $($importedConfig.database.host)'
-Write-Host 'Source file: $($importedConfig._SourceFile)"
+"Database host: $($importedConfig.database.host)"
+"Source file: $($importedConfig._SourceFile)"
 
 # Example 10: Import multiple JSON files using wildcards
 'Example 10: Import multiple JSON files using wildcards'
@@ -193,7 +193,7 @@ $settingsData | ConvertTo-Json | Set-Content -Path $settingsFile
 # Import all user-*.json files
 $allUserData = Import-Json -Path '/tmp/user-*.json'
 $allUserData | ForEach-Object {
-    Write-Host "Imported from: $($_._SourceFile)"
+    "Imported from: $($_._SourceFile)"
     $_ | Format-List
 }
 
@@ -201,7 +201,7 @@ $allUserData | ForEach-Object {
 'Example 11: Pipeline usage with Import-Json'
 $jsonFiles = @($configFile, $userFile, $settingsFile)
 $allData = $jsonFiles | Import-Json
-Write-Host "Imported $($allData.Count) JSON files via pipeline"
+"Imported $($allData.Count) JSON files via pipeline"
 
 # Example 12: Error handling with Import-Json
 'Example 12: Error handling with Import-Json'
@@ -215,7 +215,7 @@ try {
 'Example 13: Combine Import-Json with Format-Json'
 $rawConfig = Import-Json -Path $configFile
 $formattedConfig = Format-Json -InputObject $rawConfig -IndentationType Spaces -IndentationSize 2
-Write-Host 'Formatted imported configuration:'
+'Formatted imported configuration:'
 $formattedConfig
 
 # Cleanup temporary files
@@ -223,4 +223,4 @@ Remove-Item -Path $configFile, $userFile, $settingsFile -ErrorAction SilentlyCon
 
 #endregion
 
-"`nAll examples completed!""
+"`nAll examples completed!"
