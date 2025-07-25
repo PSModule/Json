@@ -1,5 +1,5 @@
 ﻿# JSON Module Examples
-# This file contains practical examples of using the Format-Json function
+# This file contains practical examples of using the Format-Json and Import-Json functions
 
 # Import the module (if not already loaded)
 # Import-Module Json
@@ -146,4 +146,81 @@ $formatted
 
 #endregion
 
-"`nAll examples completed!"
+"#endregion
+
+#region Import-Json Examples
+
+# Example 9: Import JSON from a single file
+'Example 9: Import JSON from a single file'
+# First, create a sample JSON file
+$configData = @{
+    database = @{
+        host     = 'localhost'
+        port     = 5432
+        name     = 'myapp'
+        ssl      = $true
+    }
+    logging  = @{
+        level = 'info'
+        file  = '/var/log/app.log'
+    }
+    features = @{
+        caching   = $true
+        analytics = $false
+    }
+}
+$configFile = '/tmp/config.json'
+$configData | ConvertTo-Json -Depth 3 | Set-Content -Path $configFile
+
+# Import the JSON file
+$importedConfig = Import-Json -Path $configFile
+$importedConfig
+Write-Host "Database host: $($importedConfig.database.host)"
+Write-Host "Source file: $($importedConfig._SourceFile)"
+
+# Example 10: Import multiple JSON files using wildcards
+'Example 10: Import multiple JSON files using wildcards'
+# Create multiple JSON files
+$userData = @{ name = 'Alice'; role = 'admin'; active = $true }
+$settingsData = @{ theme = 'dark'; notifications = $true; language = 'en' }
+
+$userFile = '/tmp/user-data.json'
+$settingsFile = '/tmp/user-settings.json'
+
+$userData | ConvertTo-Json | Set-Content -Path $userFile
+$settingsData | ConvertTo-Json | Set-Content -Path $settingsFile
+
+# Import all user-*.json files
+$allUserData = Import-Json -Path '/tmp/user-*.json'
+$allUserData | ForEach-Object {
+    Write-Host "Imported from: $($_._SourceFile)"
+    $_ | Format-List
+}
+
+# Example 11: Pipeline usage with Import-Json
+'Example 11: Pipeline usage with Import-Json'
+$jsonFiles = @($configFile, $userFile, $settingsFile)
+$allData = $jsonFiles | Import-Json
+Write-Host "Imported $($allData.Count) JSON files via pipeline"
+
+# Example 12: Error handling with Import-Json
+'Example 12: Error handling with Import-Json'
+try {
+    Import-Json -Path '/tmp/nonexistent.json' -ErrorAction Stop
+} catch {
+    Write-Warning "Caught expected error: $($_.Exception.Message)"
+}
+
+# Example 13: Combine Import-Json with Format-Json
+'Example 13: Combine Import-Json with Format-Json'
+$rawConfig = Import-Json -Path $configFile
+$formattedConfig = Format-Json -InputObject $rawConfig -IndentationType Spaces -IndentationSize 2
+Write-Host "Formatted imported configuration:"
+$formattedConfig
+
+# Cleanup temporary files
+Remove-Item -Path $configFile, $userFile, $settingsFile -ErrorAction SilentlyContinue
+
+#endregion
+
+"`nAll examples completed!""

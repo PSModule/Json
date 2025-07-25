@@ -495,4 +495,152 @@ Describe 'Module' {
             $result | Should -Match '"empty_string":""'
         }
     }
+
+    Context 'Import-Json' {
+        BeforeAll {
+            # Create test JSON files
+            $testDataPath = Join-Path $TestDrive 'testdata'
+            New-Item -Path $testDataPath -ItemType Directory -Force | Out-Null
+
+            $simpleJson = @'
+{
+    "name": "Test User",
+    "age": 30,
+    "active": true
+}
+'@
+            $simpleJsonPath = Join-Path $testDataPath 'simple.json'
+            $simpleJson | Out-File -FilePath $simpleJsonPath -Encoding UTF8
+
+            $complexJson = @'
+{
+    "users": [
+        {
+            "id": 1,
+            "name": "Alice",
+            "settings": {
+                "theme": "dark",
+                "notifications": true
+            }
+        },
+        {
+            "id": 2,
+            "name": "Bob",
+            "settings": {
+                "theme": "light",
+                "notifications": false
+            }
+        }
+    ],
+    "metadata": {
+        "version": "1.0",
+        "created": "2023-01-01"
+    }
+}
+'@
+            $complexJsonPath = Join-Path $testDataPath 'complex.json'
+            $complexJson | Out-File -FilePath $complexJsonPath -Encoding UTF8
+
+            $emptyJsonPath = Join-Path $testDataPath 'empty.json'
+            '' | Out-File -FilePath $emptyJsonPath -Encoding UTF8
+
+            $invalidJsonPath = Join-Path $testDataPath 'invalid.json'
+            '{ invalid json }' | Out-File -FilePath $invalidJsonPath -Encoding UTF8
+
+            LogGroup 'Test files created' {
+                Write-Host "Simple JSON: $simpleJsonPath"
+                Write-Host "Complex JSON: $complexJsonPath"
+                Write-Host "Empty JSON: $emptyJsonPath"
+                Write-Host "Invalid JSON: $invalidJsonPath"
+            }
+        }
+
+        It 'Should import simple JSON file' {
+            $result = Import-Json -Path $simpleJsonPath
+            LogGroup 'simple import result' {
+                Write-Host "$($result | ConvertTo-Json -Depth 3 -Compress)"
+            }
+            $result.name | Should -Be 'Test User'
+            $result.age | Should -Be 30
+            $result.active | Should -Be $true
+            $result._SourceFile | Should -Be $simpleJsonPath
+        }
+
+        It 'Should import complex JSON file' {
+            $result = Import-Json -Path $complexJsonPath
+            LogGroup 'complex import result' {
+                Write-Host "$($result | ConvertTo-Json -Depth 5 -Compress)"
+            }
+            $result.users | Should -HaveCount 2
+            $result.users[0].name | Should -Be 'Alice'
+            $result.users[1].name | Should -Be 'Bob'
+            $result.metadata.version | Should -Be '1.0'
+            $result._SourceFile | Should -Be $complexJsonPath
+        }
+
+        It 'Should import multiple files using wildcards' {
+            # Test with only valid JSON files to avoid interference from invalid ones
+            $validJsonPath1 = Join-Path $testDataPath 'valid1.json'
+            $validJsonPath2 = Join-Path $testDataPath 'valid2.json'
+            
+            '{"type":"user","name":"Test User"}' | Out-File -FilePath $validJsonPath1 -Encoding UTF8
+            '{"type":"product","name":"Widget"}' | Out-File -FilePath $validJsonPath2 -Encoding UTF8
+            
+            $results = Import-Json -Path (Join-Path $testDataPath 'valid*.json')
+            LogGroup 'wildcard import results' {
+                Write-Host "Found $($results.Count) results"
+                $results | ForEach-Object { Write-Host "File: $($_._SourceFile), Type: $($_.type), Name: $($_.name)" }
+            }
+            $results | Should -HaveCount 2
+            ($results | Where-Object { $_.name -eq 'Test User' }) | Should -Not -BeNullOrEmpty
+            ($results | Where-Object { $_.name -eq 'Widget' }) | Should -Not -BeNullOrEmpty
+        }
+
+        It 'Should support pipeline input' {
+            $results = $simpleJsonPath, $complexJsonPath | Import-Json
+            LogGroup 'pipeline import results' {
+                Write-Host "Pipeline results count: $($results.Count)"
+            }
+            $results | Should -HaveCount 2
+            ($results | Where-Object { $_.name -eq 'Test User' }) | Should -Not -BeNullOrEmpty
+            ($results | Where-Object { $_.users -ne $null }) | Should -Not -BeNullOrEmpty
+        }
+
+        It 'Should handle non-existent file gracefully' {
+            $nonExistentPath = Join-Path $testDataPath 'nonexistent.json'
+            { Import-Json -Path $nonExistentPath -ErrorAction Stop } | Should -Throw
+        }
+
+        It 'Should handle invalid JSON gracefully' {
+            { Import-Json -Path $invalidJsonPath -ErrorAction Stop } | Should -Throw
+        }
+
+        It 'Should warn on empty files' {
+            $warningMessages = @()
+            Import-Json -Path $emptyJsonPath -WarningVariable warningMessages -WarningAction SilentlyContinue
+            $warningMessages | Should -Not -BeNullOrEmpty
+            $warningMessages[0] | Should -Match 'empty or contains only whitespace'
+        }
+
+        It 'Should support custom depth parameter' {
+            $result = Import-Json -Path $complexJsonPath -Depth 10
+            $result.users | Should -HaveCount 2
+            $result.metadata | Should -Not -BeNullOrEmpty
+        }
+
+        It 'Should add source file information' {
+            $result = Import-Json -Path $simpleJsonPath
+            $result._SourceFile | Should -Be $simpleJsonPath
+        }
+
+        It 'Should handle relative paths' {
+            Push-Location $testDataPath
+            try {
+                $result = Import-Json -Path 'simple.json'
+                $result.name | Should -Be 'Test User'
+            } finally {
+                Pop-Location
+            }
+        }
+    }
 }
