@@ -303,8 +303,8 @@ Describe 'Module' {
                 Write-Host "$result"
             }
             $result | Should -Match '"deepValue": "Found me!"'
-            # Check that indentation is working at deep levels
-            $result | Should -Match '^ {20}"deepValue":'
+            # Check that indentation is working at deep levels (deepValue should be at level 11 = 22 spaces with 2-space indentation)
+            $result | Should -Match '(?m)^ {22}"deepValue":'
         }
 
         It 'Should format API response-like structures' {
