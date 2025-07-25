@@ -73,6 +73,8 @@ function Format-Json {
                 }
                 $indent = $indentUnit * $level
                 $indentedLine = "$indent$trimmed"
+                # Check if the line ends with an opening bracket ('[' or '{') and is not a closing bracket ('}' or ']') or a comma.
+                # This ensures that the indentation level is increased only for lines that introduce a new block.
                 if ($trimmed -match '[{\[]$' -and $trimmed -notmatch '^[}\]],?$') {
                     $level++
                 }
