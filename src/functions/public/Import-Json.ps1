@@ -38,9 +38,9 @@ function Import-Json {
         [Alias('FullName')]
         [string[]]$Path,
 
-        # The maximum depth to expand nested objects. Default is 100.
+        # The maximum depth to expand nested objects. Uses ConvertFrom-Json default if not specified.
         [Parameter()]
-        [int]$Depth = 100
+        [int]$Depth
     )
 
     process {
@@ -68,7 +68,11 @@ function Import-Json {
                     }
 
                     # Convert JSON to PowerShell object
-                    $jsonObject = $jsonContent | ConvertFrom-Json -Depth $Depth -ErrorAction Stop
+                    if ($PSBoundParameters.ContainsKey('Depth')) {
+                        $jsonObject = $jsonContent | ConvertFrom-Json -Depth $Depth -ErrorAction Stop
+                    } else {
+                        $jsonObject = $jsonContent | ConvertFrom-Json -ErrorAction Stop
+                    }
                     
                     # Add file path information as a note property for reference
                     if ($jsonObject -is [PSCustomObject]) {
