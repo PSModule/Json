@@ -113,4 +113,128 @@ Describe 'Module' {
             { Format-Json -JsonString '{ bad json' } | Should -Throw
         }
     }
+
+    Context 'Data Type Handling' {
+        It 'Should format null values correctly' {
+            $objectWithNull = [PSCustomObject]@{
+                Name        = 'Test'
+                NullValue   = $null
+                EmptyString = ''
+            }
+            $result = Format-Json -InputObject $objectWithNull -Compact
+            LogGroup 'null value formatting' {
+                Write-Host "$result"
+            }
+            $result | Should -Match '"NullValue":null'
+            $result | Should -Match '"EmptyString":""'
+        }
+
+        It 'Should format decimal numbers correctly' {
+            $objectWithDecimals = [PSCustomObject]@{
+                Price       = 2.5
+                Tax         = 0.125
+                Discount    = 10.99
+                ZeroDecimal = 0.0
+            }
+            $result = Format-Json -InputObject $objectWithDecimals -Compact
+            LogGroup 'decimal formatting' {
+                Write-Host "$result"
+            }
+            $result | Should -Match '"Price":2\.5'
+            $result | Should -Match '"Tax":0\.125'
+            $result | Should -Match '"Discount":10\.99'
+            $result | Should -Match '"ZeroDecimal":0(\.0)?'
+        }
+
+        It 'Should format boolean values correctly' {
+            $objectWithBooleans = [PSCustomObject]@{
+                IsActive  = $true
+                IsDeleted = $false
+                IsEnabled = $true
+            }
+            $result = Format-Json -InputObject $objectWithBooleans -Compact
+            LogGroup 'boolean formatting' {
+                Write-Host "$result"
+            }
+            $result | Should -Match '"IsActive":true'
+            $result | Should -Match '"IsDeleted":false'
+            $result | Should -Match '"IsEnabled":true'
+        }
+
+        It 'Should format integer numbers correctly' {
+            $objectWithIntegers = [PSCustomObject]@{
+                Count       = 42
+                Zero        = 0
+                Negative    = -15
+                LargeNumber = 1000000
+            }
+            $result = Format-Json -InputObject $objectWithIntegers -Compact
+            LogGroup 'integer formatting' {
+                Write-Host "$result"
+            }
+            $result | Should -Match '"Count":42'
+            $result | Should -Match '"Zero":0'
+            $result | Should -Match '"Negative":-15'
+            $result | Should -Match '"LargeNumber":1000000'
+        }
+
+        It 'Should format arrays with mixed data types' {
+            $objectWithMixedArray = [PSCustomObject]@{
+                MixedArray = @(
+                    'string',
+                    42,
+                    2.5,
+                    $true,
+                    $false,
+                    $null
+                )
+            }
+            $result = Format-Json -InputObject $objectWithMixedArray -Compact
+            LogGroup 'mixed array formatting' {
+                Write-Host "$result"
+            }
+            $result | Should -Match '"MixedArray":\["string",42,2\.5,true,false,null\]'
+        }
+
+        It 'Should format empty collections correctly' {
+            $objectWithEmptyCollections = [PSCustomObject]@{
+                EmptyArray  = @()
+                EmptyObject = @{}
+            }
+            $result = Format-Json -InputObject $objectWithEmptyCollections -Compact
+            LogGroup 'empty collections formatting' {
+                Write-Host "$result"
+            }
+            $result | Should -Match '"EmptyArray":\[\]'
+            $result | Should -Match '"EmptyObject":\{\}'
+        }
+
+        It 'Should format nested objects with various data types' {
+            $complexObject = [PSCustomObject]@{
+                User = [PSCustomObject]@{
+                    Name      = 'John Doe'
+                    Age       = 30
+                    Height    = 5.9
+                    IsActive  = $true
+                    LastLogin = $null
+                    Roles     = @('admin', 'user')
+                    Settings  = @{
+                        Theme         = 'dark'
+                        Notifications = $false
+                        MaxItems      = 100
+                    }
+                }
+            }
+            $result = Format-Json -InputObject $complexObject -IndentationType Spaces -IndentationSize 2
+            LogGroup 'complex nested object formatting' {
+                Write-Host "$result"
+            }
+            $result | Should -Match '"Name": "John Doe"'
+            $result | Should -Match '"Age": 30'
+            $result | Should -Match '"Height": 5\.9'
+            $result | Should -Match '"IsActive": true'
+            $result | Should -Match '"LastLogin": null'
+            $result | Should -Match '"Notifications": false'
+        }
+    }
 }
