@@ -643,4 +643,249 @@ Describe 'Module' {
             }
         }
     }
+
+    Context 'Export-Json' {
+        BeforeAll {
+            # Create test data directory
+            $exportTestPath = Join-Path $TestDrive 'exportdata'
+            New-Item -Path $exportTestPath -ItemType Directory -Force | Out-Null
+
+            # Test objects
+            $simpleObject = [PSCustomObject]@{
+                name   = 'Test User'
+                age    = 30
+                active = $true
+            }
+
+            $complexObject = [PSCustomObject]@{
+                users    = @(
+                    [PSCustomObject]@{
+                        id       = 1
+                        name     = 'Alice'
+                        settings = [ordered]@{
+                            theme         = 'dark'
+                            notifications = $true
+                        }
+                    },
+                    [PSCustomObject]@{
+                        id       = 2
+                        name     = 'Bob'
+                        settings = [ordered]@{
+                            theme         = 'light'
+                            notifications = $false
+                        }
+                    }
+                )
+                metadata = [ordered]@{
+                    version = '1.0'
+                    created = '2023-01-01'
+                }
+            }
+
+            $testJsonString = '{"name":"JSON String","value":123,"enabled":true}'
+
+            LogGroup 'Export test setup complete' {
+                Write-Host "Export test path: $exportTestPath"
+                Write-Host "Simple object: $($simpleObject | ConvertTo-Json -Compress)"
+                Write-Host "Test JSON string: $testJsonString"
+            }
+        }
+
+        It 'Should export simple object to file' {
+            $outputPath = Join-Path $exportTestPath 'simple-export.json'
+            $result = Export-Json -InputObject $simpleObject -Path $outputPath
+            
+            LogGroup 'simple export result' {
+                Write-Host "Output path: $($result.FullName)"
+                Write-Host "File exists: $(Test-Path $outputPath)"
+            }
+            
+            $result.JsonExported | Should -Be $true
+            Test-Path $outputPath | Should -Be $true
+            
+            # Verify content by re-importing
+            $imported = Import-Json -Path $outputPath
+            $imported.name | Should -Be 'Test User'
+            $imported.age | Should -Be 30
+            $imported.active | Should -Be $true
+        }
+
+        It 'Should export complex object with custom indentation' {
+            $outputPath = Join-Path $exportTestPath 'complex-export.json'
+            $result = Export-Json -InputObject $complexObject -Path $outputPath -IndentationType Spaces -IndentationSize 2
+            
+            Test-Path $outputPath | Should -Be $true
+            
+            # Verify indentation
+            $content = Get-Content $outputPath -Raw
+            LogGroup 'complex export content' {
+                Write-Host $content
+            }
+            
+            $content | Should -Match '  "users": \['
+            
+            # Verify content by re-importing
+            $imported = Import-Json -Path $outputPath
+            $imported.users | Should -HaveCount 2
+            $imported.users[0].name | Should -Be 'Alice'
+            $imported.metadata.version | Should -Be '1.0'
+        }
+
+        It 'Should export JSON string to file' {
+            $outputPath = Join-Path $exportTestPath 'string-export.json'
+            $result = Export-Json -JsonString $testJsonString -Path $outputPath
+            
+            Test-Path $outputPath | Should -Be $true
+            
+            # Verify content
+            $imported = Import-Json -Path $outputPath
+            $imported.name | Should -Be 'JSON String'
+            $imported.value | Should -Be 123
+            $imported.enabled | Should -Be $true
+        }
+
+        It 'Should export in compact format' {
+            $outputPath = Join-Path $exportTestPath 'compact-export.json'
+            Export-Json -InputObject $simpleObject -Path $outputPath -Compact
+            
+            $content = Get-Content $outputPath -Raw
+            LogGroup 'compact export content' {
+                Write-Host $content
+            }
+            
+            # Should be single line without extra whitespace
+            $content.Trim() | Should -Not -Match '\n'
+            $content | Should -Match '{"name":"Test User","age":30,"active":true}'
+        }
+
+        It 'Should export with tab indentation' {
+            $outputPath = Join-Path $exportTestPath 'tab-export.json'
+            Export-Json -InputObject $complexObject -Path $outputPath -IndentationType Tabs -IndentationSize 1
+            
+            $content = Get-Content $outputPath -Raw
+            LogGroup 'tab export content' {
+                Write-Host $content
+            }
+            
+            # Check for tab indentation - look for tabs in the content
+            $content | Should -Match '\t"users": \['
+        }
+
+        It 'Should create directory if it does not exist' {
+            $nestedPath = Join-Path $exportTestPath 'nested' | Join-Path -ChildPath 'deep' | Join-Path -ChildPath 'output.json'
+            Export-Json -InputObject $simpleObject -Path $nestedPath
+            
+            Test-Path $nestedPath | Should -Be $true
+            
+            # Verify content
+            $imported = Import-Json -Path $nestedPath
+            $imported.name | Should -Be 'Test User'
+        }
+
+        It 'Should support pipeline input with placeholders' {
+            $objects = @($simpleObject, $complexObject)
+            $basePath = Join-Path $exportTestPath 'pipeline-{0}.json'
+            
+            $results = $objects | Export-Json -Path $basePath
+            
+            $results | Should -HaveCount 2
+            
+            # Check both files were created
+            $file1 = Join-Path $exportTestPath 'pipeline-0.json'
+            $file2 = Join-Path $exportTestPath 'pipeline-1.json'
+            
+            Test-Path $file1 | Should -Be $true
+            Test-Path $file2 | Should -Be $true
+            
+            # Verify contents
+            $imported1 = Import-Json -Path $file1
+            $imported2 = Import-Json -Path $file2
+            
+            $imported1.name | Should -Be 'Test User'
+            $imported2.users | Should -HaveCount 2
+        }
+
+        It 'Should handle file overwrite with Force parameter' {
+            $outputPath = Join-Path $exportTestPath 'overwrite-test.json'
+            
+            # Create initial file
+            Export-Json -InputObject $simpleObject -Path $outputPath
+            $initialContent = Get-Content $outputPath -Raw
+            
+            # Overwrite with different content
+            $newObject = [PSCustomObject]@{ updated = $true; timestamp = '2024-01-01' }
+            Export-Json -InputObject $newObject -Path $outputPath -Force
+            
+            $newContent = Get-Content $outputPath -Raw
+            $newContent | Should -Not -Be $initialContent
+            
+            # Verify new content
+            $imported = Import-Json -Path $outputPath
+            $imported.updated | Should -Be $true
+            $imported.timestamp | Should -Be '2024-01-01'
+        }
+
+        It 'Should handle different encodings' {
+            $outputPath = Join-Path $exportTestPath 'encoding-test.json'
+            $objectWithUnicode = [PSCustomObject]@{
+                text    = 'Café ñ 中文 🚀'
+                symbols = '♠♥♦♣'
+            }
+            
+            Export-Json -InputObject $objectWithUnicode -Path $outputPath -Encoding UTF8
+            
+            # Verify content can be read back correctly
+            $imported = Import-Json -Path $outputPath
+            $imported.text | Should -Be 'Café ñ 中文 🚀'
+            $imported.symbols | Should -Be '♠♥♦♣'
+        }
+
+        It 'Should handle custom depth parameter' {
+            $deepObject = [PSCustomObject]@{
+                level1 = @{
+                    level2 = @{
+                        level3 = @{
+                            value = 'deep nested value'
+                        }
+                    }
+                }
+            }
+            
+            $outputPath = Join-Path $exportTestPath 'deep-export.json'
+            Export-Json -InputObject $deepObject -Path $outputPath -Depth 10
+            
+            # Verify deep structure is preserved
+            $imported = Import-Json -Path $outputPath
+            $imported.level1.level2.level3.value | Should -Be 'deep nested value'
+        }
+
+        It 'Should handle invalid JSON string gracefully' {
+            $outputPath = Join-Path $exportTestPath 'invalid-test.json'
+            { Export-Json -JsonString '{ invalid json }' -Path $outputPath -ErrorAction Stop } | Should -Throw
+        }
+
+        It 'Should work with WhatIf parameter' {
+            $outputPath = Join-Path $exportTestPath 'whatif-test.json'
+            Export-Json -InputObject $simpleObject -Path $outputPath -WhatIf
+            
+            # File should not be created with WhatIf
+            Test-Path $outputPath | Should -Be $false
+        }
+
+        It 'Should integrate with Import-Json for roundtrip' {
+            $outputPath = Join-Path $exportTestPath 'roundtrip-test.json'
+            
+            # Export then import
+            Export-Json -InputObject $complexObject -Path $outputPath -IndentationType Spaces -IndentationSize 2
+            $imported = Import-Json -Path $outputPath
+            
+            # Verify roundtrip integrity
+            $imported.users | Should -HaveCount 2
+            $imported.users[0].name | Should -Be 'Alice'
+            $imported.users[0].settings.theme | Should -Be 'dark'
+            $imported.users[1].name | Should -Be 'Bob'
+            $imported.users[1].settings.notifications | Should -Be $false
+            $imported.metadata.version | Should -Be '1.0'
+        }
+    }
 }
