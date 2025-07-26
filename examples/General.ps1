@@ -223,4 +223,92 @@ Remove-Item -Path $configFile, $userFile, $settingsFile -ErrorAction SilentlyCon
 
 #endregion
 
+#region Export-Json Examples
+
+# Example 14: Export simple object to file
+'Example 14: Export simple object to file'
+$userObject = @{
+    name     = 'John Doe'
+    age      = 30
+    email    = 'john.doe@example.com'
+    active   = $true
+    roles    = @('user', 'contributor')
+}
+
+$outputFile = '/tmp/user-export.json'
+Export-Json -InputObject $userObject -Path $outputFile -IndentationType Spaces -IndentationSize 2
+'Exported to file:'
+Get-Content $outputFile
+
+# Example 15: Export with compact formatting
+'Example 15: Export with compact formatting'
+$compactFile = '/tmp/user-compact.json'
+Export-Json -InputObject $userObject -Path $compactFile -Compact
+'Compact export:'
+Get-Content $compactFile
+
+# Example 16: Export multiple objects via pipeline
+'Example 16: Export multiple objects via pipeline'
+$users = @(
+    @{ id = 1; name = 'Alice'; department = 'Engineering' },
+    @{ id = 2; name = 'Bob'; department = 'Marketing' },
+    @{ id = 3; name = 'Carol'; department = 'Sales' }
+)
+
+$users | Export-Json -Path '/tmp/user-{0}.json' -IndentationType Tabs -IndentationSize 1
+'Pipeline export results:'
+Get-ChildItem '/tmp/user-*.json' | ForEach-Object {
+    "File: $($_.Name)"
+    Get-Content $_.FullName | Select-Object -First 3
+    ''
+}
+
+# Example 17: Export JSON string to file
+'Example 17: Export JSON string to file'
+$jsonString = '{"service":"api","version":"1.2.3","endpoints":["/users","/products","/orders"]}'
+$serviceFile = '/tmp/service-config.json'
+Export-Json -JsonString $jsonString -Path $serviceFile -IndentationType Spaces -IndentationSize 4
+'Formatted JSON string export:'
+Get-Content $serviceFile
+
+# Example 18: Roundtrip example - Import, modify, export
+'Example 18: Roundtrip example - Import, modify, export'
+# First create a JSON file to import
+$originalConfig = @{
+    database = @{
+        host = 'localhost'
+        port = 5432
+        name = 'myapp'
+    }
+    features = @{
+        logging   = $true
+        caching   = $false
+        analytics = $true
+    }
+}
+
+$configFile = '/tmp/original-config.json'
+Export-Json -InputObject $originalConfig -Path $configFile
+
+# Import and modify
+$config = Import-Json -Path $configFile
+$config.database.host = 'production-db.example.com'
+$config.features.caching = $true
+$config.lastModified = Get-Date -Format 'yyyy-MM-ddTHH:mm:ss'
+
+# Export the modified configuration
+$modifiedFile = '/tmp/modified-config.json'
+Export-Json -InputObject $config -Path $modifiedFile -IndentationType Spaces -IndentationSize 2
+
+'Original config:'
+Get-Content $configFile
+''
+'Modified config:'
+Get-Content $modifiedFile
+
+# Cleanup temporary files
+Remove-Item -Path $outputFile, $compactFile, $serviceFile, $configFile, $modifiedFile, '/tmp/user-*.json' -ErrorAction SilentlyContinue
+
+#endregion
+
 "`nAll examples completed!"
