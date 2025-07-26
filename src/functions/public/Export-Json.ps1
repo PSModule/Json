@@ -66,7 +66,7 @@ function Export-Json {
 
         # The maximum depth to serialize nested objects.
         [Parameter()]
-        [int]$Depth = 100,
+        [int]$Depth = 2,
 
         # Overwrite existing files without prompting.
         [Parameter()]
@@ -74,8 +74,8 @@ function Export-Json {
 
         # Text encoding for the output file.
         [Parameter()]
-        [ValidateSet('UTF8', 'UTF8BOM', 'UTF8NoBOM', 'UTF32', 'Unicode', 'ASCII')]
-        [string]$Encoding = 'UTF8'
+        [ValidateSet('ASCII', 'BigEndianUnicode', 'BigEndianUTF32', 'OEM', 'Unicode', 'UTF7', 'UTF8', 'UTF8BOM', 'UTF8NoBOM', 'UTF32')]
+        [string]$Encoding = 'UTF8NoBOM'
     )
 
     begin {
