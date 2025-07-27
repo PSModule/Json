@@ -887,5 +887,34 @@ Describe 'Module' {
             $imported.users[1].settings.notifications | Should -Be $false
             $imported.metadata.version | Should -Be '1.0'
         }
+
+        It 'Should export array as root JSON structure' {
+            $outputPath = Join-Path $exportTestPath 'array-root-test.json'
+            $testArray = @('item1', 'item2', 'item3', 42, $true, $null)
+            
+            Export-Json -InputObject $testArray -Path $outputPath -IndentationType Spaces -IndentationSize 2
+            
+            # Verify file was created
+            Test-Path $outputPath | Should -Be $true
+            
+            # Verify content starts with [ and ends with ]
+            $content = Get-Content $outputPath -Raw
+            LogGroup 'array root export content' {
+                Write-Host $content
+            }
+            
+            $content.Trim() | Should -Match '^\['
+            $content.Trim() | Should -Match '\]$'
+            
+            # Verify content by re-importing maintains array structure
+            $imported = Import-Json -Path $outputPath
+            $imported | Should -HaveCount 6
+            $imported[0] | Should -Be 'item1'
+            $imported[1] | Should -Be 'item2'
+            $imported[2] | Should -Be 'item3'
+            $imported[3] | Should -Be 42
+            $imported[4] | Should -Be $true
+            $imported[5] | Should -Be $null
+        }
     }
 }
