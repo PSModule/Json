@@ -228,11 +228,11 @@ Remove-Item -Path $configFile, $userFile, $settingsFile -ErrorAction SilentlyCon
 # Example 14: Export simple object to file
 'Example 14: Export simple object to file'
 $userObject = @{
-    name     = 'John Doe'
-    age      = 30
-    email    = 'john.doe@example.com'
-    active   = $true
-    roles    = @('user', 'contributor')
+    name   = 'John Doe'
+    age    = 30
+    email  = 'john.doe@example.com'
+    active = $true
+    roles  = @('user', 'contributor')
 }
 
 $outputFile = '/tmp/user-export.json'

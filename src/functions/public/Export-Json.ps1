@@ -143,17 +143,13 @@ function Export-Json {
                 # Output file info object
                 Get-Item -Path $resolvedPath | Add-Member -MemberType NoteProperty -Name 'JsonExported' -Value $true -PassThru
             }
-        }
-        catch [System.ArgumentException] {
+        } catch [System.ArgumentException] {
             Write-Error "Invalid JSON format: $_"
-        }
-        catch [System.IO.DirectoryNotFoundException] {
+        } catch [System.IO.DirectoryNotFoundException] {
             Write-Error "Directory not found or could not be created: $directory"
-        }
-        catch [System.UnauthorizedAccessException] {
+        } catch [System.UnauthorizedAccessException] {
             Write-Error "Access denied: $resolvedPath"
-        }
-        catch {
+        } catch {
             Write-Error "Failed to export JSON to '$resolvedPath': $_"
         }
     }
