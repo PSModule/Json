@@ -45,7 +45,7 @@ function Format-Json {
         # Number of spaces or tabs per indentation level. Only used if not compacting.
         [Parameter(ParameterSetName = 'FromString')]
         [Parameter(ParameterSetName = 'FromObject')]
-        [UInt16]$IndentationSize = 4
+        [UInt16]$IndentationSize = 2
     )
 
     process {

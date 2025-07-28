@@ -62,7 +62,7 @@ function Export-Json {
 
         # Number of spaces or tabs per indentation level. Only used if not compacting.
         [Parameter()]
-        [UInt16]$IndentationSize = 4,
+        [UInt16]$IndentationSize = 2,
 
         # The maximum depth to serialize nested objects.
         [Parameter()]
@@ -100,7 +100,8 @@ function Export-Json {
             }
 
             # Resolve the full path
-            $resolvedPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($outputPath)
+            $sessionState = $ExecutionContext.SessionState  
+            $resolvedPath = $sessionState.Path.GetUnresolvedProviderPathFromPSPath($outputPath)
 
             # Check if file exists and handle accordingly
             if ((Test-Path -Path $resolvedPath -PathType Leaf) -and -not $Force) {
