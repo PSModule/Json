@@ -100,7 +100,20 @@ function Export-Json {
             }
 
             # Resolve the path for consistent operations and error messages
-            $resolvedPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($outputPath)
+            if (Test-Path -Path $outputPath) {
+                $resolvedPath = Resolve-Path -Path $outputPath
+            } else {
+                # For non-existing files, resolve the parent directory and combine with filename
+                $parentPath = Split-Path -Path $outputPath -Parent
+                $fileName = Split-Path -Path $outputPath -Leaf
+                if ($parentPath -and (Test-Path -Path $parentPath)) {
+                    $resolvedParent = Resolve-Path -Path $parentPath
+                    $resolvedPath = Join-Path -Path $resolvedParent -ChildPath $fileName
+                } else {
+                    # If parent doesn't exist either, use the original path as-is for error messages
+                    $resolvedPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($outputPath)
+                }
+            }
 
             # Check if file exists and handle accordingly
             if ((Test-Path -Path $resolvedPath -PathType Leaf) -and -not $Force) {
