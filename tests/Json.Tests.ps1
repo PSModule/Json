@@ -972,23 +972,38 @@ Describe 'Module' {
             $parentPath = Join-Path $exportTestPath 'mockfail'
             New-Item -Path $parentPath -ItemType Directory -Force | Out-Null
 
-            # Make directory readonly to simulate creation failure
-            if ($IsWindows -or $PSVersionTable.PSVersion.Major -le 5) {
-                Set-ItemProperty -Path $parentPath -Name IsReadOnly -Value $true
-            } else {
-                chmod 444 $parentPath
-            }
-
+            $originalAcl = $null
             $errorMessage = ''
             try {
+                # Make directory readonly to simulate creation failure
+                if ($IsWindows -or $PSVersionTable.PSVersion.Major -le 5) {
+                    # On Windows, use ACL to deny write access
+                    $originalAcl = Get-Acl $parentPath
+                    $accessRule = New-Object System.Security.AccessControl.FileSystemAccessRule(
+                        [System.Security.Principal.WindowsIdentity]::GetCurrent().Name,
+                        "Write,CreateDirectories,CreateFiles",
+                        "Deny"
+                    )
+                    $acl = Get-Acl $parentPath
+                    $acl.AddAccessRule($accessRule)
+                    Set-Acl -Path $parentPath -AclObject $acl
+                } else {
+                    chmod 444 $parentPath
+                }
+
                 Export-Json -InputObject $simpleObject -Path $nestedPath -ErrorAction Stop
             } catch {
                 $errorMessage = $_.Exception.Message
             } finally {
                 # Cleanup: restore permissions
                 if ($IsWindows -or $PSVersionTable.PSVersion.Major -le 5) {
-                    if (Test-Path $parentPath) {
-                        Set-ItemProperty -Path $parentPath -Name IsReadOnly -Value $false -ErrorAction SilentlyContinue
+                    if ($originalAcl -and (Test-Path $parentPath)) {
+                        try {
+                            Set-Acl -Path $parentPath -AclObject $originalAcl -ErrorAction SilentlyContinue
+                        } catch {
+                            # If restoring ACL fails, try to reset to default permissions
+                            icacls $parentPath /reset /T /C 2>$null | Out-Null
+                        }
                     }
                 } else {
                     if (Test-Path $parentPath) {
@@ -1009,24 +1024,39 @@ Describe 'Module' {
 
             # Create directory and remove write permissions
             New-Item -ItemType Directory -Path $restrictedDir -Force | Out-Null
-            if ($IsWindows -or $PSVersionTable.PSVersion.Major -le 5) {
-                # On Windows, set directory to read-only
-                Set-ItemProperty -Path $restrictedDir -Name IsReadOnly -Value $true
-            } else {
-                # On Unix, remove write permissions from directory
-                chmod 555 $restrictedDir
-            }
 
+            $originalAcl = $null
             $errorMessage = ''
             try {
+                if ($IsWindows -or $PSVersionTable.PSVersion.Major -le 5) {
+                    # On Windows, use ACL to deny write access
+                    $originalAcl = Get-Acl $restrictedDir
+                    $accessRule = New-Object System.Security.AccessControl.FileSystemAccessRule(
+                        [System.Security.Principal.WindowsIdentity]::GetCurrent().Name,
+                        "Write,CreateFiles",
+                        "Deny"
+                    )
+                    $acl = Get-Acl $restrictedDir
+                    $acl.AddAccessRule($accessRule)
+                    Set-Acl -Path $restrictedDir -AclObject $acl
+                } else {
+                    # On Unix, remove write permissions from directory
+                    chmod 555 $restrictedDir
+                }
+
                 Export-Json -InputObject $simpleObject -Path $outputPath -Force -ErrorAction Stop
             } catch {
                 $errorMessage = $_.Exception.Message
             } finally {
                 # Cleanup: restore permissions
                 if ($IsWindows -or $PSVersionTable.PSVersion.Major -le 5) {
-                    if (Test-Path $restrictedDir) {
-                        Set-ItemProperty -Path $restrictedDir -Name IsReadOnly -Value $false -ErrorAction SilentlyContinue
+                    if ($originalAcl -and (Test-Path $restrictedDir)) {
+                        try {
+                            Set-Acl -Path $restrictedDir -AclObject $originalAcl -ErrorAction SilentlyContinue
+                        } catch {
+                            # If restoring ACL fails, try to reset to default permissions
+                            icacls $restrictedDir /reset /T /C 2>$null | Out-Null
+                        }
                     }
                 } else {
                     if (Test-Path $restrictedDir) {
