@@ -107,7 +107,10 @@ function Export-Json {
                 if ($PSCmdlet.ShouldProcess($resolvedPath, "Overwrite existing file")) {
                     # Continue with export
                 } else {
-                    Write-Error "File already exists: $resolvedPath. Use -Force to overwrite."
+                    # Only error if not WhatIf - WhatIf should just show what would happen
+                    if (-not $WhatIfPreference) {
+                        Write-Error "File already exists: $resolvedPath. Use -Force to overwrite."
+                    }
                     return
                 }
             }
@@ -135,7 +138,11 @@ function Export-Json {
                     Path     = $resolvedPath
                     Value    = $formattedJson
                     Encoding = $Encoding
-                    Force    = $true
+                }
+
+                # Only use Force for Set-Content if user explicitly requested it
+                if ($Force) {
+                    $writeParams['Force'] = $true
                 }
 
                 Set-Content @writeParams -ErrorAction Stop

@@ -945,11 +945,11 @@ Describe 'Module' {
             # Test the specific error path when ShouldProcess returns false
             # We can simulate this by using a mock or by testing the actual error output
             # For now, let's verify the error message exists and is triggered correctly
-            
+
             $errorOutput = @()
             try {
                 # This tests the path where file exists but -Force is not used
-                # In a real interactive session, if user says "No" to overwrite, 
+                # In a real interactive session, if user says "No" to overwrite,
                 # it would trigger the error on line 110
                 Export-Json -InputObject $simpleObject -Path $outputPath -WhatIf -ErrorVariable errorOutput -ErrorAction SilentlyContinue 2>&1
             } catch {
@@ -971,7 +971,7 @@ Describe 'Module' {
             # Create a custom error scenario by temporarily making the parent path readonly
             $parentPath = Join-Path $exportTestPath 'mockfail'
             New-Item -Path $parentPath -ItemType Directory -Force | Out-Null
-            
+
             # Make directory readonly to simulate creation failure
             if ($IsWindows -or $PSVersionTable.PSVersion.Major -le 5) {
                 Set-ItemProperty -Path $parentPath -Name IsReadOnly -Value $true
@@ -1003,17 +1003,18 @@ Describe 'Module' {
         }
 
         It 'Should handle access denied errors' {
-            # Create a readonly file first, then try to overwrite it
-            $outputPath = Join-Path $exportTestPath 'readonly-test.json'
-            
-            # Create initial file
-            Export-Json -InputObject $simpleObject -Path $outputPath
-            
-            # Make file readonly to simulate access denied
+            # Create a directory without write permissions to simulate access denied
+            $restrictedDir = Join-Path $exportTestPath 'restricted'
+            $outputPath = Join-Path $restrictedDir 'test.json'
+
+            # Create directory and remove write permissions
+            New-Item -ItemType Directory -Path $restrictedDir -Force | Out-Null
             if ($IsWindows -or $PSVersionTable.PSVersion.Major -le 5) {
-                Set-ItemProperty -Path $outputPath -Name IsReadOnly -Value $true
+                # On Windows, set directory to read-only
+                Set-ItemProperty -Path $restrictedDir -Name IsReadOnly -Value $true
             } else {
-                chmod 444 $outputPath
+                # On Unix, remove write permissions from directory
+                chmod 555 $restrictedDir
             }
 
             $errorMessage = ''
@@ -1022,16 +1023,17 @@ Describe 'Module' {
             } catch {
                 $errorMessage = $_.Exception.Message
             } finally {
-                # Cleanup: remove readonly attribute
+                # Cleanup: restore permissions
                 if ($IsWindows -or $PSVersionTable.PSVersion.Major -le 5) {
-                    if (Test-Path $outputPath) {
-                        Set-ItemProperty -Path $outputPath -Name IsReadOnly -Value $false -ErrorAction SilentlyContinue
+                    if (Test-Path $restrictedDir) {
+                        Set-ItemProperty -Path $restrictedDir -Name IsReadOnly -Value $false -ErrorAction SilentlyContinue
                     }
                 } else {
-                    if (Test-Path $outputPath) {
-                        chmod 644 $outputPath
+                    if (Test-Path $restrictedDir) {
+                        chmod 755 $restrictedDir
                     }
                 }
+                Remove-Item $restrictedDir -Recurse -Force -ErrorAction SilentlyContinue
             }
 
             # Should contain access denied error (line 151) or general error (line 153)
@@ -1041,7 +1043,7 @@ Describe 'Module' {
         It 'Should handle general export failures with descriptive error' {
             # Test with invalid JSON string to trigger ConvertFrom-Json error
             $outputPath = Join-Path $exportTestPath 'invalid-json-test.json'
-            
+
             $errorMessage = ''
             try {
                 # This should trigger the ArgumentException catch block (line 146-147)
@@ -1055,24 +1057,24 @@ Describe 'Module' {
         }
 
         It 'Should contain all required error handling lines mentioned in code review' {
-            # This test verifies that the specific error handling lines mentioned in the 
+            # This test verifies that the specific error handling lines mentioned in the
             # GitHub comment are present in the Export-Json function
             $exportJsonPath = Join-Path $PSScriptRoot '../src/functions/public/Export-Json.ps1'
             $functionContent = Get-Content $exportJsonPath -Raw
-            
+
             # Verify the specific lines/patterns exist in the function:
             # 1. ShouldProcess for overwrite confirmation
             $functionContent | Should -Match '\$PSCmdlet\.ShouldProcess.*Overwrite existing file'
-            
+
             # 2. Error when file exists without Force
             $functionContent | Should -Match 'File already exists.*Use -Force to overwrite'
-            
+
             # 3. Directory creation error handling
             $functionContent | Should -Match 'Directory not found or could not be created'
-            
-            # 4. Access denied error handling  
+
+            # 4. Access denied error handling
             $functionContent | Should -Match 'Access denied'
-            
+
             # 5. General export failure error handling
             $functionContent | Should -Match 'Failed to export JSON'
         }
