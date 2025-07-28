@@ -99,9 +99,8 @@ function Export-Json {
                 $Path
             }
 
-            # Resolve the full path
-            $sessionState = $ExecutionContext.SessionState
-            $resolvedPath = $sessionState.Path.GetUnresolvedProviderPathFromPSPath($outputPath)
+            # Resolve the path for consistent operations and error messages
+            $resolvedPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($outputPath)
 
             # Check if file exists and handle accordingly
             if ((Test-Path -Path $resolvedPath -PathType Leaf) -and -not $Force) {
