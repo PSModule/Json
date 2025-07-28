@@ -116,7 +116,7 @@ function Export-Json {
             $directory = Split-Path -Path $resolvedPath -Parent
             if ($directory -and -not (Test-Path -Path $directory -PathType Container)) {
                 Write-Verbose "Creating directory: $directory"
-                New-Item -Path $directory -ItemType Directory -Force | Out-Null
+                $null = New-Item -Path $directory -ItemType Directory -Force
             }
 
             # Format the JSON
