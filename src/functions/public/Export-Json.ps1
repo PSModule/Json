@@ -100,7 +100,7 @@ function Export-Json {
             }
 
             # Resolve the full path
-            $sessionState = $ExecutionContext.SessionState  
+            $sessionState = $ExecutionContext.SessionState
             $resolvedPath = $sessionState.Path.GetUnresolvedProviderPathFromPSPath($outputPath)
 
             # Check if file exists and handle accordingly
