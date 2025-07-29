@@ -24,21 +24,21 @@ Describe 'Module' {
         BeforeAll {
             $prettyJson = @'
 {
-    "Name": "Test",
-    "Items": [
-        {
-            "Id": 1,
-            "Value": "One"
-        },
-        {
-            "Id": 2,
-            "Value": "Two"
-        }
-    ],
-    "Meta": {
-        "Active": true,
-        "Count": 2
+  "Name": "Test",
+  "Items": [
+    {
+      "Id": 1,
+      "Value": "One"
+    },
+    {
+      "Id": 2,
+      "Value": "Two"
     }
+  ],
+  "Meta": {
+    "Active": true,
+    "Count": 2
+  }
 }
 '@
 
