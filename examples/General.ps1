@@ -247,7 +247,7 @@ Export-Json -InputObject $userObject -Path $compactFile -Compact
 'Compact export:'
 Get-Content $compactFile
 
-# Example 16: Export multiple objects via pipeline
+# Example 16: Export multiple objects via pipeline to same file (last overwrites previous)
 'Example 16: Export multiple objects via pipeline'
 $users = @(
     @{ id = 1; name = 'Alice'; department = 'Engineering' },
@@ -255,13 +255,9 @@ $users = @(
     @{ id = 3; name = 'Carol'; department = 'Sales' }
 )
 
-$users | Export-Json -Path '/tmp/user-{0}.json' -IndentationType Tabs -IndentationSize 1
-'Pipeline export results:'
-Get-ChildItem '/tmp/user-*.json' | ForEach-Object {
-    "File: $($_.Name)"
-    Get-Content $_.FullName | Select-Object -First 3
-    ''
-}
+$users | Export-Json -Path '/tmp/users-pipeline.json' -IndentationType Tabs -IndentationSize 1
+'Pipeline export result (last object only):'
+Get-Content '/tmp/users-pipeline.json'
 
 # Example 17: Export JSON string to file
 'Example 17: Export JSON string to file'
@@ -307,7 +303,7 @@ Get-Content $configFile
 Get-Content $modifiedFile
 
 # Cleanup temporary files
-Remove-Item -Path $outputFile, $compactFile, $serviceFile, $configFile, $modifiedFile, '/tmp/user-*.json' -ErrorAction SilentlyContinue
+Remove-Item -Path $outputFile, $compactFile, $serviceFile, $configFile, $modifiedFile, '/tmp/users-pipeline.json' -ErrorAction SilentlyContinue
 
 #endregion
 

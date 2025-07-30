@@ -782,29 +782,6 @@ Describe 'Module' {
             $imported.name | Should -Be 'Test User'
         }
 
-        It 'Should support pipeline input with placeholders' {
-            $objects = @($simpleObject, $complexObject)
-            $basePath = Join-Path $exportTestPath 'pipeline-{0}.json'
-
-            $results = $objects | Export-Json -Path $basePath
-
-            $results | Should -HaveCount 2
-
-            # Check both files were created
-            $file1 = Join-Path $exportTestPath 'pipeline-0.json'
-            $file2 = Join-Path $exportTestPath 'pipeline-1.json'
-
-            Test-Path $file1 | Should -Be $true
-            Test-Path $file2 | Should -Be $true
-
-            # Verify contents
-            $imported1 = Import-Json -Path $file1
-            $imported2 = Import-Json -Path $file2
-
-            $imported1.name | Should -Be 'Test User'
-            $imported2.users | Should -HaveCount 2
-        }
-
         It 'Should handle file overwrite with Force parameter' {
             $outputPath = Join-Path $exportTestPath 'overwrite-test.json'
 

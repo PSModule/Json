@@ -24,9 +24,9 @@ function Export-Json {
         Exports a JSON string to data.json in compact format.
 
         .EXAMPLE
-        $objects | Export-Json -Path 'output-{0}.json'
+        $objects | Export-Json -Path 'output.json'
 
-        Exports multiple objects to numbered files via pipeline.
+        Exports multiple objects to the same file via pipeline (last object overwrites).
 
         .EXAMPLE
         Export-Json -InputObject $config -Path 'settings.json' -IndentationType Tabs -Force
@@ -47,7 +47,7 @@ function Export-Json {
         [Parameter(Mandatory, ValueFromPipeline, ParameterSetName = 'FromString')]
         [string]$JsonString,
 
-        # The path to the output JSON file. Supports placeholders for pipeline processing.
+        # The path to the output JSON file.
         [Parameter(Mandatory)]
         [string]$Path,
 
@@ -79,7 +79,6 @@ function Export-Json {
     )
 
     begin {
-        $fileIndex = 0
     }
 
     process {
@@ -91,13 +90,8 @@ function Export-Json {
                 $InputObject
             }
 
-            # Generate the file path (support for placeholders in pipeline scenarios)
-            $outputPath = if ($Path -match '\{0\}') {
-                $Path -f $fileIndex
-                $fileIndex++
-            } else {
-                $Path
-            }
+            # Generate the file path
+            $outputPath = $Path
 
             # Resolve the path for consistent operations and error messages
             if (Test-Path -Path $outputPath) {
