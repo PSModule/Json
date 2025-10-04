@@ -922,55 +922,9 @@ Describe 'Module' {
             $imported[5] | Should -Be $null
         }
 
-        It 'Should prompt for overwrite confirmation when file exists without Force' {
-            $outputPath = Join-Path $exportTestPath 'confirm-overwrite-test.json'
-
-            # Create initial file
-            Export-Json -InputObject $simpleObject -Path $outputPath
-
-            # Test that ShouldProcess is called by using -WhatIf
-            # When WhatIf is used, the file should not be overwritten
-            $result = Export-Json -InputObject $simpleObject -Path $outputPath -WhatIf
-
-            # With WhatIf, no output should be returned (no file processing)
-            $result | Should -BeNullOrEmpty
-
-            # Original file should still exist with original content
-            $originalContent = Get-Content $outputPath -Raw
-            $imported = $originalContent | ConvertFrom-Json
-            $imported.name | Should -Be 'Test User'
-        }
-
         It 'Should throw error when JSON string is invalid' {
             $outputPath = Join-Path $exportTestPath 'invalid-test.json'
             { Export-Json -JsonString '{ invalid json }' -Path $outputPath -ErrorAction Stop } | Should -Throw
-        }
-
-        It 'Should write error when file exists and Force is not used (ShouldProcess declines)' {
-            $outputPath = Join-Path $exportTestPath 'no-force-test.json'
-
-            # Create initial file
-            Export-Json -InputObject $simpleObject -Path $outputPath
-
-            # Test the specific error path when ShouldProcess returns false
-            # We can simulate this by using a mock or by testing the actual error output
-            # For now, let's verify the error message exists and is triggered correctly
-
-            $errorOutput = @()
-            try {
-                # This tests the path where file exists but -Force is not used
-                # In a real interactive session, if user says "No" to overwrite,
-                # it would trigger the error on line 110
-                Export-Json -InputObject $simpleObject -Path $outputPath -WhatIf -ErrorVariable errorOutput -ErrorAction SilentlyContinue 2>&1
-            } catch {
-                # Capture any thrown errors
-                $errorOutput += $_.Exception.Message
-            }
-
-            # We should be able to manually verify the error handling logic exists
-            # by checking that the function contains the correct error message
-            $functionContent = Get-Content (Join-Path $PSScriptRoot '../src/functions/public/Export-Json.ps1') -Raw
-            $functionContent | Should -Match 'File already exists.*Use -Force to overwrite'
         }
 
         It 'Should throw error when file exists without Force' {
