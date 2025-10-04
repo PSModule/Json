@@ -118,18 +118,10 @@ function Export-Json {
                 }
             }
 
-            # Check if file exists
+            # Check if file exists and throw error if not using -Force
             $fileExists = Test-Path -Path $resolvedPath -PathType Leaf
-
-            # Throw if file exists without -Force
             if ($fileExists -and -not $Force) {
-                $errorRecord = [System.Management.Automation.ErrorRecord]::new(
-                    [System.IO.IOException]::new("File already exists: $resolvedPath. Use -Force to overwrite."),
-                    'FileExists',
-                    [System.Management.Automation.ErrorCategory]::ResourceExists,
-                    $resolvedPath
-                )
-                $PSCmdlet.ThrowTerminatingError($errorRecord)
+                throw "The file '$resolvedPath' already exists. Use -Force to overwrite."
             }
 
             # Create directory if it doesn't exist
@@ -150,7 +142,7 @@ function Export-Json {
             }
 
             # Write to file
-            if ($PSCmdlet.ShouldProcess($resolvedPath, 'Export JSON')) {
+            if ($PSCmdlet.ShouldProcess($resolvedPath, 'Exporting Json to file')) {
                 Write-Verbose "Exporting JSON to: $resolvedPath"
 
                 $writeParams = @{
