@@ -52,8 +52,11 @@ function Import-Json {
                 foreach ($resolvedPath in $resolvedPaths) {
                     Write-Verbose "Processing file: $($resolvedPath.Path)"
 
-                    # Test if the file exists and is a file (not directory)
-                    if (-not (Test-Path -Path $resolvedPath.Path -PathType Leaf)) {
+                    # Check if file exists
+                    $fileExists = Test-Path -Path $resolvedPath.Path -PathType Leaf
+
+                    # Skip if file doesn't exist or is not a file
+                    if (-not $fileExists) {
                         Write-Error "File not found or is not a file: $($resolvedPath.Path)"
                         continue
                     }
@@ -61,7 +64,7 @@ function Import-Json {
                     # Read file content
                     $jsonContent = Get-Content -Path $resolvedPath.Path -Raw -ErrorAction Stop
 
-                    # Check if file is empty
+                    # Skip if file is empty
                     if ([string]::IsNullOrWhiteSpace($jsonContent)) {
                         Write-Warning "File is empty or contains only whitespace: $($resolvedPath.Path)"
                         continue

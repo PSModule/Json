@@ -705,14 +705,15 @@ Describe 'Module' {
 
         It 'Should export simple object to file' {
             $outputPath = Join-Path $exportTestPath 'simple-export.json'
-            $result = Export-Json -InputObject $simpleObject -Path $outputPath
+            $result = Export-Json -InputObject $simpleObject -Path $outputPath -PassThru
 
             LogGroup 'simple export result' {
                 Write-Host "Output path: $($result.FullName)"
                 Write-Host "File exists: $(Test-Path $outputPath)"
             }
 
-            $result.JsonExported | Should -Be $true
+            $result | Should -Not -BeNullOrEmpty
+            $result.FullName | Should -Be $outputPath
             Test-Path $outputPath | Should -Be $true
 
             # Verify content by re-importing
@@ -781,6 +782,26 @@ Describe 'Module' {
 
             # Check for tab indentation - look for tabs in the content
             $content | Should -Match '\t"users": \['
+        }
+
+        It 'Should not return output by default' {
+            $outputPath = Join-Path $exportTestPath 'no-output-test.json'
+            $result = Export-Json -InputObject $simpleObject -Path $outputPath
+
+            # Should not return anything by default
+            $result | Should -BeNullOrEmpty
+            Test-Path $outputPath | Should -Be $true
+        }
+
+        It 'Should return file object when PassThru is specified' {
+            $outputPath = Join-Path $exportTestPath 'passthru-test.json'
+            $result = Export-Json -InputObject $simpleObject -Path $outputPath -PassThru
+
+            # Should return file object with PassThru
+            $result | Should -Not -BeNullOrEmpty
+            $result | Should -BeOfType [System.IO.FileInfo]
+            $result.FullName | Should -Be $outputPath
+            $result.Exists | Should -Be $true
         }
 
         It 'Should create directory if it does not exist' {
