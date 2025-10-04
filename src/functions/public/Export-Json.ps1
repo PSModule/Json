@@ -33,6 +33,11 @@ function Export-Json {
 
         Exports configuration to settings.json with tab indentation, overwriting if it exists.
 
+        .EXAMPLE
+        $file = Export-Json -InputObject $data -Path 'output.json' -PassThru
+
+        Exports data and returns the file object for further processing.
+
         .LINK
         https://psmodule.io/Json/Functions/Export-Json/
     #>
@@ -75,7 +80,11 @@ function Export-Json {
         # Text encoding for the output file.
         [Parameter()]
         [ValidateSet('ASCII', 'BigEndianUnicode', 'BigEndianUTF32', 'OEM', 'Unicode', 'UTF7', 'UTF8', 'UTF8BOM', 'UTF8NoBOM', 'UTF32')]
-        [string]$Encoding = 'UTF8NoBOM'
+        [string]$Encoding = 'UTF8',
+
+        # Return the file object after export.
+        [Parameter()]
+        [switch]$PassThru
     )
 
     begin {
@@ -109,24 +118,19 @@ function Export-Json {
                 }
             }
 
-            # Check if file exists and handle accordingly
-            if ((Test-Path -Path $resolvedPath -PathType Leaf) -and -not $Force) {
-                if ($PSCmdlet.ShouldProcess($resolvedPath, "Overwrite existing file")) {
-                    # Continue with export
-                } else {
-                    # Only error if not WhatIf - WhatIf should just show what would happen
-                    if (-not $WhatIfPreference) {
-                        Write-Error "File already exists: $resolvedPath. Use -Force to overwrite."
-                    }
-                    return
-                }
+            # Check if file exists and throw error if not using -Force
+            $fileExists = Test-Path -Path $resolvedPath -PathType Leaf
+            if ($fileExists -and -not $Force) {
+                throw "The file '$resolvedPath' already exists. Use -Force to overwrite."
             }
 
             # Create directory if it doesn't exist
             $directory = Split-Path -Path $resolvedPath -Parent
             if ($directory -and -not (Test-Path -Path $directory -PathType Container)) {
-                Write-Verbose "Creating directory: $directory"
-                $null = New-Item -Path $directory -ItemType Directory -Force
+                if ($PSCmdlet.ShouldProcess($directory, 'Create directory')) {
+                    Write-Verbose "Creating directory: $directory"
+                    $null = New-Item -Path $directory -ItemType Directory -Force
+                }
             }
 
             # Format the JSON
@@ -138,7 +142,7 @@ function Export-Json {
             }
 
             # Write to file
-            if ($PSCmdlet.ShouldProcess($resolvedPath, "Export JSON")) {
+            if ($PSCmdlet.ShouldProcess($resolvedPath, 'Exporting Json to file')) {
                 Write-Verbose "Exporting JSON to: $resolvedPath"
 
                 $writeParams = @{
@@ -154,8 +158,10 @@ function Export-Json {
 
                 Set-Content @writeParams -ErrorAction Stop
 
-                # Output file info object
-                Get-Item -Path $resolvedPath | Add-Member -MemberType NoteProperty -Name 'JsonExported' -Value $true -PassThru
+                # Output file info object only if PassThru is specified
+                if ($PassThru) {
+                    Get-Item -Path $resolvedPath
+                }
             }
         } catch [System.ArgumentException] {
             Write-Error "Invalid JSON format: $_"

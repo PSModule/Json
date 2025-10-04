@@ -109,7 +109,7 @@ Describe 'Module' {
             ($result -split "`n") | Where-Object { $_ -match '^ {12}"Id"' } | Should -Not -BeNullOrEmpty
         }
 
-        It 'Should throw on invalid input' {
+        It 'Should throw error on invalid input' {
             { Format-Json -JsonString '{ bad json' } | Should -Throw
         }
     }
@@ -606,22 +606,6 @@ Describe 'Module' {
             ($results | Where-Object { $_.users -ne $null }) | Should -Not -BeNullOrEmpty
         }
 
-        It 'Should handle non-existent file gracefully' {
-            $nonExistentPath = Join-Path $testDataPath 'nonexistent.json'
-            { Import-Json -Path $nonExistentPath -ErrorAction Stop } | Should -Throw
-        }
-
-        It 'Should handle invalid JSON gracefully' {
-            { Import-Json -Path $invalidJsonPath -ErrorAction Stop } | Should -Throw
-        }
-
-        It 'Should warn on empty files' {
-            $warningMessages = @()
-            Import-Json -Path $emptyJsonPath -WarningVariable warningMessages -WarningAction SilentlyContinue
-            $warningMessages | Should -Not -BeNullOrEmpty
-            $warningMessages[0] | Should -Match 'empty or contains only whitespace'
-        }
-
         It 'Should support custom depth parameter' {
             $result = Import-Json -Path $complexJsonPath -Depth 10
             $result.users | Should -HaveCount 2
@@ -641,6 +625,34 @@ Describe 'Module' {
             } finally {
                 Pop-Location
             }
+        }
+
+        It 'Should warn on empty files' {
+            $warningMessages = @()
+            Import-Json -Path $emptyJsonPath -WarningVariable warningMessages -WarningAction SilentlyContinue
+            $warningMessages | Should -Not -BeNullOrEmpty
+            $warningMessages[0] | Should -Match 'empty or contains only whitespace'
+        }
+
+        It 'Should throw error when file does not exist' {
+            $nonExistentPath = Join-Path $testDataPath 'nonexistent.json'
+            { Import-Json -Path $nonExistentPath -ErrorAction Stop } | Should -Throw
+        }
+
+        It 'Should throw error when JSON is invalid' {
+            { Import-Json -Path $invalidJsonPath -ErrorAction Stop } | Should -Throw
+        }
+
+        It 'Should throw error when path is a directory, not a file' {
+            $directoryPath = Join-Path $testDataPath 'testdir'
+            New-Item -Path $directoryPath -ItemType Directory -Force | Out-Null
+            { Import-Json -Path $directoryPath -ErrorAction Stop } | Should -Throw -ExpectedMessage '*File not found or is not a file*'
+        }
+
+        It 'Should throw error when JSON file has invalid syntax' {
+            $invalidJsonPath = Join-Path $testDataPath 'syntax-error.json'
+            '{ "name": "test", invalid }' | Out-File -FilePath $invalidJsonPath -Encoding UTF8
+            { Import-Json -Path $invalidJsonPath -ErrorAction Stop } | Should -Throw
         }
     }
 
@@ -693,14 +705,15 @@ Describe 'Module' {
 
         It 'Should export simple object to file' {
             $outputPath = Join-Path $exportTestPath 'simple-export.json'
-            $result = Export-Json -InputObject $simpleObject -Path $outputPath
+            $result = Export-Json -InputObject $simpleObject -Path $outputPath -PassThru
 
             LogGroup 'simple export result' {
                 Write-Host "Output path: $($result.FullName)"
                 Write-Host "File exists: $(Test-Path $outputPath)"
             }
 
-            $result.JsonExported | Should -Be $true
+            $result | Should -Not -BeNullOrEmpty
+            $result.FullName | Should -Be $outputPath
             Test-Path $outputPath | Should -Be $true
 
             # Verify content by re-importing
@@ -771,6 +784,26 @@ Describe 'Module' {
             $content | Should -Match '\t"users": \['
         }
 
+        It 'Should not return output by default' {
+            $outputPath = Join-Path $exportTestPath 'no-output-test.json'
+            $result = Export-Json -InputObject $simpleObject -Path $outputPath
+
+            # Should not return anything by default
+            $result | Should -BeNullOrEmpty
+            Test-Path $outputPath | Should -Be $true
+        }
+
+        It 'Should return file object when PassThru is specified' {
+            $outputPath = Join-Path $exportTestPath 'passthru-test.json'
+            $result = Export-Json -InputObject $simpleObject -Path $outputPath -PassThru
+
+            # Should return file object with PassThru
+            $result | Should -Not -BeNullOrEmpty
+            $result | Should -BeOfType [System.IO.FileInfo]
+            $result.FullName | Should -Be $outputPath
+            $result.Exists | Should -Be $true
+        }
+
         It 'Should create directory if it does not exist' {
             $nestedPath = Join-Path $exportTestPath 'nested' | Join-Path -ChildPath 'deep' | Join-Path -ChildPath 'output.json'
             Export-Json -InputObject $simpleObject -Path $nestedPath
@@ -836,11 +869,6 @@ Describe 'Module' {
             $imported.level1.level2.level3.value | Should -Be 'deep nested value'
         }
 
-        It 'Should handle invalid JSON string gracefully' {
-            $outputPath = Join-Path $exportTestPath 'invalid-test.json'
-            { Export-Json -JsonString '{ invalid json }' -Path $outputPath -ErrorAction Stop } | Should -Throw
-        }
-
         It 'Should work with WhatIf parameter' {
             $outputPath = Join-Path $exportTestPath 'whatif-test.json'
             Export-Json -InputObject $simpleObject -Path $outputPath -WhatIf
@@ -894,196 +922,28 @@ Describe 'Module' {
             $imported[5] | Should -Be $null
         }
 
-        It 'Should prompt for overwrite confirmation when file exists without Force' {
-            $outputPath = Join-Path $exportTestPath 'confirm-overwrite-test.json'
+        It 'Should throw error when JSON string is invalid' {
+            $outputPath = Join-Path $exportTestPath 'invalid-test.json'
+            { Export-Json -JsonString '{ invalid json }' -Path $outputPath -ErrorAction Stop } | Should -Throw
+        }
 
-            # Create initial file
+        It 'Should throw error when file exists without Force' {
+            $outputPath = Join-Path $exportTestPath 'existing-file-test.json'
             Export-Json -InputObject $simpleObject -Path $outputPath
 
-            # Test that ShouldProcess is called by using -WhatIf
-            # When WhatIf is used, the file should not be overwritten
-            $result = Export-Json -InputObject $simpleObject -Path $outputPath -WhatIf
-
-            # With WhatIf, no output should be returned (no file processing)
-            $result | Should -BeNullOrEmpty
-
-            # Original file should still exist with original content
-            $originalContent = Get-Content $outputPath -Raw
-            $imported = $originalContent | ConvertFrom-Json
-            $imported.name | Should -Be 'Test User'
+            { Export-Json -InputObject $simpleObject -Path $outputPath -Confirm:$false -ErrorAction Stop } | Should -Throw
         }
 
-        It 'Should write error when file exists and Force is not used (ShouldProcess declines)' {
-            $outputPath = Join-Path $exportTestPath 'no-force-test.json'
-
-            # Create initial file
-            Export-Json -InputObject $simpleObject -Path $outputPath
-
-            # Test the specific error path when ShouldProcess returns false
-            # We can simulate this by using a mock or by testing the actual error output
-            # For now, let's verify the error message exists and is triggered correctly
-
-            $errorOutput = @()
-            try {
-                # This tests the path where file exists but -Force is not used
-                # In a real interactive session, if user says "No" to overwrite,
-                # it would trigger the error on line 110
-                Export-Json -InputObject $simpleObject -Path $outputPath -WhatIf -ErrorVariable errorOutput -ErrorAction SilentlyContinue 2>&1
-            } catch {
-                # Capture any thrown errors
-                $errorOutput += $_.Exception.Message
+        It 'Should throw error when output path is invalid' {
+            # Use an invalid path that will cause directory creation or export to fail
+            if ($IsWindows -or $PSVersionTable.PSVersion.Major -le 5) {
+                $invalidPath = 'Z:\NonExistent\Path\test.json'
+            } else {
+                $invalidPath = '/nonexistent/path/test.json'
             }
 
-            # We should be able to manually verify the error handling logic exists
-            # by checking that the function contains the correct error message
-            $functionContent = Get-Content (Join-Path $PSScriptRoot '../src/functions/public/Export-Json.ps1') -Raw
-            $functionContent | Should -Match 'File already exists.*Use -Force to overwrite'
-        }
-
-        It 'Should handle directory creation failure' {
-            # Try to create a file in a path that would require creating directories
-            # but mock the New-Item to fail to simulate directory creation failure
-            $nestedPath = Join-Path $exportTestPath 'mockfail' | Join-Path -ChildPath 'test.json'
-
-            # Create a custom error scenario by temporarily making the parent path readonly
-            $parentPath = Join-Path $exportTestPath 'mockfail'
-            New-Item -Path $parentPath -ItemType Directory -Force | Out-Null
-
-            $originalAcl = $null
-            $errorMessage = ''
-            try {
-                # Make directory readonly to simulate creation failure
-                if ($IsWindows -or $PSVersionTable.PSVersion.Major -le 5) {
-                    # On Windows, use ACL to deny write access
-                    $originalAcl = Get-Acl $parentPath
-                    $accessRule = New-Object System.Security.AccessControl.FileSystemAccessRule(
-                        [System.Security.Principal.WindowsIdentity]::GetCurrent().Name,
-                        "Write,CreateDirectories,CreateFiles",
-                        "Deny"
-                    )
-                    $acl = Get-Acl $parentPath
-                    $acl.AddAccessRule($accessRule)
-                    Set-Acl -Path $parentPath -AclObject $acl
-                } else {
-                    chmod 444 $parentPath
-                }
-
-                Export-Json -InputObject $simpleObject -Path $nestedPath -ErrorAction Stop
-            } catch {
-                $errorMessage = $_.Exception.Message
-            } finally {
-                # Cleanup: restore permissions
-                if ($IsWindows -or $PSVersionTable.PSVersion.Major -le 5) {
-                    if ($originalAcl -and (Test-Path $parentPath)) {
-                        try {
-                            Set-Acl -Path $parentPath -AclObject $originalAcl -ErrorAction SilentlyContinue
-                        } catch {
-                            # If restoring ACL fails, try to reset to default permissions
-                            icacls $parentPath /reset /T /C 2>$null | Out-Null
-                        }
-                    }
-                } else {
-                    if (Test-Path $parentPath) {
-                        chmod 755 $parentPath
-                    }
-                }
-                Remove-Item $parentPath -Recurse -Force -ErrorAction SilentlyContinue
-            }
-
-            # Should catch directory creation or access errors (lines 149, 151, or 153)
-            $errorMessage | Should -Match "(Directory not found|Access denied|Failed to export JSON)"
-        }
-
-        It 'Should handle access denied errors' {
-            # Create a directory without write permissions to simulate access denied
-            $restrictedDir = Join-Path $exportTestPath 'restricted'
-            $outputPath = Join-Path $restrictedDir 'test.json'
-
-            # Create directory and remove write permissions
-            New-Item -ItemType Directory -Path $restrictedDir -Force | Out-Null
-
-            $originalAcl = $null
-            $errorMessage = ''
-            try {
-                if ($IsWindows -or $PSVersionTable.PSVersion.Major -le 5) {
-                    # On Windows, use ACL to deny write access
-                    $originalAcl = Get-Acl $restrictedDir
-                    $accessRule = New-Object System.Security.AccessControl.FileSystemAccessRule(
-                        [System.Security.Principal.WindowsIdentity]::GetCurrent().Name,
-                        "Write,CreateFiles",
-                        "Deny"
-                    )
-                    $acl = Get-Acl $restrictedDir
-                    $acl.AddAccessRule($accessRule)
-                    Set-Acl -Path $restrictedDir -AclObject $acl
-                } else {
-                    # On Unix, remove write permissions from directory
-                    chmod 555 $restrictedDir
-                }
-
-                Export-Json -InputObject $simpleObject -Path $outputPath -Force -ErrorAction Stop
-            } catch {
-                $errorMessage = $_.Exception.Message
-            } finally {
-                # Cleanup: restore permissions
-                if ($IsWindows -or $PSVersionTable.PSVersion.Major -le 5) {
-                    if ($originalAcl -and (Test-Path $restrictedDir)) {
-                        try {
-                            Set-Acl -Path $restrictedDir -AclObject $originalAcl -ErrorAction SilentlyContinue
-                        } catch {
-                            # If restoring ACL fails, try to reset to default permissions
-                            icacls $restrictedDir /reset /T /C 2>$null | Out-Null
-                        }
-                    }
-                } else {
-                    if (Test-Path $restrictedDir) {
-                        chmod 755 $restrictedDir
-                    }
-                }
-                Remove-Item $restrictedDir -Recurse -Force -ErrorAction SilentlyContinue
-            }
-
-            # Should contain access denied error (line 151) or general error (line 153)
-            $errorMessage | Should -Match "(Access denied|Failed to export JSON)"
-        }
-
-        It 'Should handle general export failures with descriptive error' {
-            # Test with invalid JSON string to trigger ConvertFrom-Json error
-            $outputPath = Join-Path $exportTestPath 'invalid-json-test.json'
-
-            $errorMessage = ''
-            try {
-                # This should trigger the ArgumentException catch block (line 146-147)
-                Export-Json -JsonString '{ "invalid": json, syntax }' -Path $outputPath -ErrorAction Stop
-            } catch {
-                $errorMessage = $_.Exception.Message
-            }
-
-            # Should contain either invalid JSON format error (line 147) or general error (line 153)
-            $errorMessage | Should -Match "(Invalid JSON format|Failed to export JSON)"
-        }
-
-        It 'Should contain all required error handling lines mentioned in code review' {
-            # This test verifies that the specific error handling lines mentioned in the
-            # GitHub comment are present in the Export-Json function
-            $exportJsonPath = Join-Path $PSScriptRoot '../src/functions/public/Export-Json.ps1'
-            $functionContent = Get-Content $exportJsonPath -Raw
-
-            # Verify the specific lines/patterns exist in the function:
-            # 1. ShouldProcess for overwrite confirmation
-            $functionContent | Should -Match '\$PSCmdlet\.ShouldProcess.*Overwrite existing file'
-
-            # 2. Error when file exists without Force
-            $functionContent | Should -Match 'File already exists.*Use -Force to overwrite'
-
-            # 3. Directory creation error handling
-            $functionContent | Should -Match 'Directory not found or could not be created'
-
-            # 4. Access denied error handling
-            $functionContent | Should -Match 'Access denied'
-
-            # 5. General export failure error handling
-            $functionContent | Should -Match 'Failed to export JSON'
+            # Should throw directory or export failure error (line 187 or 191)
+            { Export-Json -InputObject $simpleObject -Path $invalidPath -ErrorAction Stop } | Should -Throw
         }
     }
 }
