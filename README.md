@@ -1,69 +1,77 @@
-# {{ NAME }}
+# Json
 
-{{ DESCRIPTION }}
+Json is a PowerShell module for importing, formatting, and exporting JSON data in scripts and automation workflows.
 
 ## Prerequisites
 
-This uses the following external resources:
-- The [PSModule framework](https://github.com/PSModule) for building, testing and publishing the module.
+- PowerShell with `Microsoft.PowerShell.PSResourceGet` available for `Install-PSResource`.
+- The [PSModule framework](https://github.com/PSModule) is used for building, testing, and publishing the module.
 
 ## Installation
 
-To install the module from the PowerShell Gallery, you can use the following command:
+Install the module from the PowerShell Gallery:
 
 ```powershell
-Install-PSResource -Name {{ NAME }}
-Import-Module -Name {{ NAME }}
+Install-PSResource -Name Json
+Import-Module -Name Json
 ```
+
+## Commands
+
+- `Import-Json` reads JSON files and converts them to PowerShell objects. Wildcards and pipeline input are supported.
+- `Format-Json` formats JSON strings or PowerShell objects as indented or compact JSON.
+- `Export-Json` writes PowerShell objects or JSON strings to files, with support for indentation, encoding, `-Force`, and `-PassThru`.
 
 ## Usage
 
-Here is a list of example that are typical use cases for the module.
-
-### Example 1: Greet an entity
-
-Provide examples for typical commands that a user would like to do with the module.
+Format a JSON string with two-space indentation:
 
 ```powershell
-Greet-Entity -Name 'World'
-Hello, World!
+Format-Json -JsonString '{"name":"Marius","roles":["admin","dev"]}' -IndentationType Spaces -IndentationSize 2
 ```
 
-### Example 2
-
-Provide examples for typical commands that a user would like to do with the module.
+Convert a PowerShell object to compact JSON:
 
 ```powershell
-Import-Module -Name PSModuleTemplate
+@{
+	name = 'Marius'
+	roles = @('admin', 'dev')
+} | Format-Json -Compact
 ```
 
-### Find more examples
+Import one or more JSON files:
 
-To find more examples of how to use the module, please refer to the [examples](examples) folder.
+```powershell
+Import-Json -Path 'config.json'
+'settings.json', 'users.json' | Import-Json
+```
 
-Alternatively, you can use the Get-Command -Module 'This module' to find more commands that are available in the module.
-To find examples of each of the commands you can use Get-Help -Examples 'CommandName'.
+Export an object to a JSON file:
+
+```powershell
+$config = @{
+	database = @{ host = 'localhost'; port = 5432 }
+	logging = @{ level = 'info' }
+}
+
+Export-Json -InputObject $config -Path 'config.json' -Depth 4 -Force
+```
+
+## Examples
+
+More usage examples are available in the [examples](examples) folder.
+
+You can also inspect the available commands and built-in help from PowerShell:
+
+```powershell
+Get-Command -Module Json
+Get-Help Format-Json -Examples
+```
 
 ## Documentation
 
-Link to further documentation if available, or describe where in the repository users can find more detailed documentation about
-the module's functions and features.
+Command documentation is published at [psmodule.io/Json](https://psmodule.io/Json/).
 
 ## Contributing
 
-Coder or not, you can contribute to the project! We welcome all contributions.
-
-### For Users
-
-If you don't code, you still sit on valuable information that can make this project even better. If you experience that the
-product does unexpected things, throw errors or is missing functionality, you can help by submitting bugs and feature requests.
-Please see the issues tab on this project and submit a new issue that matches your needs.
-
-### For Developers
-
-If you do code, we'd love to have your contributions. Please read the [Contribution guidelines](CONTRIBUTING.md) for more information.
-You can either help by picking up an existing issue or submit a new one if you have an idea for a new feature or improvement.
-
-## Acknowledgements
-
-Here is a list of people and projects that helped this project in some way.
+Issues and pull requests are welcome. Please use the repository issue tracker to report bugs, request features, or discuss improvements.
