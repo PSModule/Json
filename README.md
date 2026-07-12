@@ -1,69 +1,52 @@
-# {{ NAME }}
+# Json
 
-{{ DESCRIPTION }}
-
-## Prerequisites
-
-This uses the following external resources:
-- The [PSModule framework](https://github.com/PSModule) for building, testing and publishing the module.
+Json is a PowerShell module for common JSON tasks: pretty-printing or minifying JSON, and reading and writing JSON files as PowerShell objects.
 
 ## Installation
 
-To install the module from the PowerShell Gallery, you can use the following command:
+Install the module from the PowerShell Gallery:
 
 ```powershell
-Install-PSResource -Name {{ NAME }}
-Import-Module -Name {{ NAME }}
+Install-PSResource -Name Json
+Import-Module -Name Json
 ```
 
 ## Usage
 
-Here is a list of example that are typical use cases for the module.
+### Example: Pretty-print a JSON string
 
-### Example 1: Greet an entity
-
-Provide examples for typical commands that a user would like to do with the module.
+Use `Format-Json` to reformat a compact JSON string with readable indentation.
 
 ```powershell
-Greet-Entity -Name 'World'
-Hello, World!
+Format-Json -JsonString '{"a":1,"b":{"c":2}}' -IndentationType Spaces -IndentationSize 2
 ```
 
-### Example 2
+### Example: Minify a PowerShell object to JSON
 
-Provide examples for typical commands that a user would like to do with the module.
+Convert an object to compact (minified) JSON.
 
 ```powershell
-Import-Module -Name PSModuleTemplate
+$config = @{ user = 'Marius'; roles = @('admin', 'dev') }
+Format-Json -InputObject $config -Compact
 ```
 
-### Find more examples
+### Example: Read and write JSON files
 
-To find more examples of how to use the module, please refer to the [examples](examples) folder.
+Use `Import-Json` to load a file into PowerShell objects and `Export-Json` to write objects back to disk.
 
-Alternatively, you can use the Get-Command -Module 'This module' to find more commands that are available in the module.
-To find examples of each of the commands you can use Get-Help -Examples 'CommandName'.
+```powershell
+$settings = Import-Json -Path 'config.json'
+$settings.roles += 'reviewer'
+Export-Json -InputObject $settings -Path 'config.json' -IndentationType Spaces -IndentationSize 2
+```
 
 ## Documentation
 
-Link to further documentation if available, or describe where in the repository users can find more detailed documentation about
-the module's functions and features.
+Documentation is published at [psmodule.io/Json](https://psmodule.io/Json/).
 
-## Contributing
+Use PowerShell help and command discovery for module details:
 
-Coder or not, you can contribute to the project! We welcome all contributions.
-
-### For Users
-
-If you don't code, you still sit on valuable information that can make this project even better. If you experience that the
-product does unexpected things, throw errors or is missing functionality, you can help by submitting bugs and feature requests.
-Please see the issues tab on this project and submit a new issue that matches your needs.
-
-### For Developers
-
-If you do code, we'd love to have your contributions. Please read the [Contribution guidelines](CONTRIBUTING.md) for more information.
-You can either help by picking up an existing issue or submit a new one if you have an idea for a new feature or improvement.
-
-## Acknowledgements
-
-Here is a list of people and projects that helped this project in some way.
+```powershell
+Get-Command -Module Json
+Get-Help -Name Format-Json -Examples
+```
